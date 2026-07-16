@@ -123,3 +123,60 @@ html, body, #root {
   width: 100vw;
   height: 100vh;
 }
+
+/* Custom React Flow Controls & Minimap Styling */
+.react-flow__controls {
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow) !important;
+  overflow: hidden;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.react-flow__controls-button {
+  background: var(--bg) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-h) !important;
+  fill: var(--text-h) !important;
+  border-radius: 4px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--accent-bg) !important;
+  color: var(--accent) !important;
+  fill: var(--accent) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+
+.react-flow__minimap {
+  background-color: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow) !important;
+  overflow: hidden;
+}
+
+.react-flow__minimap-mask {
+  fill: var(--accent-bg) !important;
+  stroke: var(--accent-border) !important;
+  stroke-width: 1px;
+}
+
+.react-flow__minimap-node {
+  fill: var(--accent) !important;
+  opacity: 0.6;
+}
+

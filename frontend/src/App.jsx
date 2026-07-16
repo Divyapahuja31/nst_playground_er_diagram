@@ -5,6 +5,8 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  MiniMap,
+  Controls,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -30,12 +32,14 @@ export default function App() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        zoomOnDoubleClick={false}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={true}
         fitView
       >
         <Background variant="dots" gap={16} size={1.2} />
+        <Controls />
+        <MiniMap />
       </ReactFlow>
     </div>
   );
