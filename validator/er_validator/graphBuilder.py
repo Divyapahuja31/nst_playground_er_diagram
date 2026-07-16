@@ -10,17 +10,18 @@ class ColoredGraph:
 
 class ColorTable:
     def __init__(self):
-        self._ids = {}
-        self._keys = []
+        # Maps a set of properties (e.g. ('FIELD', 'INT', True)) to a unique number to identify different vertex types.
+        self._signature_ids = {}
+        self._signatures = []
 
     def intern(self, key):
-        if key not in self._ids:
-            self._ids[key] = len(self._keys)
-            self._keys.append(key)
-        return self._ids[key]
+        if key not in self._signature_ids:
+            self._signature_ids[key] = len(self._signatures)
+            self._signatures.append(key)
+        return self._signature_ids[key]
 
     def key_of(self, color_id):
-        return self._keys[color_id]
+        return self._signatures[color_id]
 
     @staticmethod
     def describe(key):
@@ -70,9 +71,9 @@ def build_graph(diagram, color_table):
         source_marker = add_vertex(source_color, f'fk{relationship.id}:source')
         destination_marker = add_vertex(destination_color, f'fk{relationship.id}:destination')
         
-        graph.edges.append((vertex_id_map[relationship.start_field], source_marker))
+        graph.edges.append((vertex_ids[relationship.start_field], source_marker))
         graph.edges.append((source_marker, destination_marker))
-        graph.edges.append((destination_marker, vertex_id_map[relationship.end_field]))
+        graph.edges.append((destination_marker, vertex_ids[relationship.end_field]))
 
     return graph
             
