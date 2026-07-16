@@ -14,25 +14,25 @@ def questions_list():
 @app.post('/questions')
 def questions_create(payload: dict = Body(...)):
     title = payload.get('title')
-    prompt = payload.get('prompt')
-    reference = payload.get('reference')
-    if not title or not prompt or reference is None:
-        raise HTTPException(422, 'body must contain "title", "prompt" and "reference"')
-    return {'id': store.create_question(title, prompt, reference)}
+    question = payload.get('question')
+    solution = payload.get('solution')
+    if not title or not question or solution is None:
+        raise HTTPException(422, 'body must contain "title", "question" and "solution"')
+    return {'id': store.create_question(title, question, solution)}
 
 
 @app.get('/questions/{qid}')
-def questions_get(qid: int, include_reference: bool = False):
-    q = store.get_question(qid)
-    if q is None:
+def questions_get(qid: int, include_solution: bool = False):
+    question = store.get_question(qid)
+    if question is None:
         raise HTTPException(404, f'no question with id {qid}')
-    if not include_reference:
-        del q['reference']
-    return q
+    if not include_solution:
+        del question['solution']
+    return question
 
 @app.delete('/questions/{qid}')
 def questions_delete(qid: int):
     if not store.delete_question(qid):
         raise HTTPException(404, f'no question with id {qid}')
-    return {'ok': True}
+    return {'ok': True }
 

@@ -30,24 +30,24 @@ def list_questions():
     return [dict(r) for r in rows]
 
 
-def get_question(qid):
+def get_question(question_id):
     with _conn() as c:
-        row = c.execute('SELECT * FROM questions WHERE id = ?', (qid,)).fetchone()
+        row = c.execute('SELECT * FROM questions WHERE id = ?', (question_id,)).fetchone()
     if not row:
         return None
-    q = dict(row)
-    q['reference'] = json.loads(q['reference'])
-    return q
+    question = dict(row)
+    question['solution'] = json.loads(question['solution'])
+    return question
 
-def create_question(title, prompt, reference):
+def create_question(title, question, solution):
     with _conn() as c:
         cur = c.execute(
-            'INSERT INTO questions (title, prompt, reference, created_at) VALUES (?,?,?,?)',
-            (title, prompt, json.dumps(reference), time.time()))
+            'INSERT INTO questions (title, prompt, solution, created_at) VALUES (?,?,?,?)',
+            (title, question, json.dumps(solution), time.time()))
         return cur.lastrowid
 
 
-def delete_question(qid):
+def delete_question(question_id):
     with _conn() as c:
-        cur = c.execute('DELETE FROM questions WHERE id = ?', (qid,))
+        cur = c.execute('DELETE FROM questions WHERE id = ?', (question_id,))
         return cur.rowcount > 0
