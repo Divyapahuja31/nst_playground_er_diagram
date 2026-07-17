@@ -9,6 +9,7 @@ import {
   Controls,
 } from '@xyflow/react';
 
+import Navbar from './components/Navbar';
 import '@xyflow/react/dist/style.css';
 
 const initialNodes = [];
@@ -25,22 +26,29 @@ export default function App() {
   );
 
   return (
-    <div className="canvas-container">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        zoomOnDoubleClick={true}
-        fitView
-      >
-        <Background variant="dots" gap={16} size={1.2} />
-        <Controls />
-        <MiniMap />
-      </ReactFlow>
+    <div className="app-container">
+      <Navbar />
+
+      <main className="main-workspace">
+        <div className="canvas-container">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
+            zoomOnDoubleClick={true}
+            fitView
+          >
+            <Background variant="dots" gap={16} size={1.2} />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+        </div>
+      </main>
     </div>
   );
 }
+
