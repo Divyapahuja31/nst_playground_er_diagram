@@ -1,7 +1,7 @@
 # This file will be used before running bliss as bliss can take time, so we remove the obvious wrong answer
 # by comparing count of tables, relation, fields, etc. So that bliss does not take that much time 
 
-from graphBuilder import field_color_key, ColorTable
+from .graphBuilder import field_color_key, ColorTable
 from collections import Counter
 
 def _mismatch(code, message, solution=None, student=None):
@@ -52,27 +52,27 @@ def compare(solution, student):
             mismatches.append(_mismatch(
                 code, f'solution has {target} {what}, student has {current}', solution=target, student=current))
 
-    mismatches += _counter_diff(
+    mismatches += _counter_differences(
         'field_types', 'field(s) of',
         Counter(field_color_key(f) for t in solution.tables for f in t.fields),
         Counter(field_color_key(f) for t in student.tables for f in t.fields),
         describe=ColorTable.describe,
     )
 
-    mismatches += _counter_diff(
+    mismatches += _counter_differences(
         'table_composition', 'table(s) with fields',
         Counter(_table_signature(t) for t in solution.tables),
         Counter(_table_signature(t) for t in student.tables),
         describe=_describe_signature,
     )
 
-    mismatches += _counter_diff(
+    mismatches += _counter_differences(
         'cardinality', 'relationship(s) of cardinality',
         Counter(r.cardinality for r in solution.relationships),
         Counter(r.cardinality for r in student.relationships),
     )
 
-    mismatches += _counter_diff(
+    mismatches += _counter_differences(
         'relationship_endpoints', 'relationship(s)',
         Counter(_rel_endpoint_key(solution, r) for r in solution.relationships),
         Counter(_rel_endpoint_key(student, r) for r in student.relationships),

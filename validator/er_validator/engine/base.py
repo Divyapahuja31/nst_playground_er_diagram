@@ -30,7 +30,7 @@ class IsomorphismEngine(ABC):
 def get_engine(name):
     key = (name or '').strip().lower()
     if key not in ENGINES:
-        raise EngineError(
+        raise ValueError(
             f'unknown algorithm "{name}" — expected one of: {", ".join(sorted(ENGINES))}')
     return ENGINES[key]()
 
