@@ -367,8 +367,6 @@ html, body, #root {
   font-weight: 700;
 }
 
-}
-
 /* App Container Layout */
 .app-container {
   display: flex;
