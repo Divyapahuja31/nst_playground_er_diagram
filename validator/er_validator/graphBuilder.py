@@ -64,9 +64,9 @@ def build_graph(diagram, color_table):
         # same color so A->B and B->A produce isomorphic encodings. one_to_many
         # was already normalized into many_to_one by the parser.
         if relationship.cardinality == 'one_to_one':
-            source_color = distination_color = ('FK', 'one_to_one')
+            source_color = destination_color = ('FK', 'one_to_one')
         else:
-            source_color, distination_color = ('FK_SOURCE', relationship.cardinality), ('FK_DESTINATION', relationship.cardinality)
+            source_color, destination_color = ('FK_SOURCE', relationship.cardinality), ('FK_DESTINATION', relationship.cardinality)
         
         source_marker = add_vertex(source_color, f'fk{relationship.id}:source')
         destination_marker = add_vertex(destination_color, f'fk{relationship.id}:destination')
