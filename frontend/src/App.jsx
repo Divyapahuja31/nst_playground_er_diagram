@@ -123,7 +123,6 @@ export default function App() {
           onUpdateTable={handleUpdateTable}
           onDeleteTable={handleDeleteTable}
         />
-        <RightSidebar />
       </main>
     </div>
   );
