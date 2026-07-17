@@ -34,8 +34,6 @@ export default function App() {
       <main className="main-workspace">
         <Sidebar />
         <div className="canvas-container">
-      <main className="flex flex-row flex-grow w-full h-[calc(100vh-56px)] relative overflow-hidden">
-        <div className="flex-1 h-full relative">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -52,7 +50,6 @@ export default function App() {
             <MiniMap />
           </ReactFlow>
         </div>
-        
         <RightSidebar />
       </main>
     </div>

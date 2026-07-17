@@ -22,6 +22,22 @@ def init_db():
             ' solution TEXT NOT NULL,'
             ' created_at REAL NOT NULL)'
         )
+        # Check if table is empty
+        row = c.execute('SELECT COUNT(*) as count FROM questions').fetchone()
+        if row and row['count'] == 0:
+            seed_path = Path(__file__).resolve().parent / 'seed_questions.json'
+            if seed_path.exists():
+                with open(seed_path, 'r', encoding='utf-8') as f:
+                    seed_data = json.load(f)
+                    for item in seed_data:
+                        title = item.get('title')
+                        question = item.get('question')
+                        solution = item.get('solution')
+                        if title and question and solution is not None:
+                            c.execute(
+                                'INSERT INTO questions (title, question, solution, created_at) VALUES (?,?,?,?)',
+                                (title, question, json.dumps(solution), time.time())
+                            )
 
 def list_questions():
     with _conn() as c:

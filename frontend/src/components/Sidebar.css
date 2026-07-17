@@ -4,7 +4,7 @@
   height: 100%;
   min-height: 100%;
   background-color: var(--bg-subtle-primary-default);
-  border-right: 1px solid var(--border-subtle-primary-default);
+  border-right: 1px solid var(--color-neutral-300);
   position: relative;
   z-index: 5;
   box-sizing: border-box;
@@ -12,8 +12,8 @@
 
 /* Left Vertical Navigation Strip */
 .sidebar-nav {
-  width: 48px;
-  min-width: 48px;
+  width: 56px;
+  min-width: 56px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -21,8 +21,8 @@
 }
 
 .sidebar-nav-logo-area {
-  height: 48px;
-  min-height: 48px;
+  height: 56px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -71,22 +71,30 @@
 
 /* Tab Button Styles */
 .nav-tab-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle-primary-default); /* grayish line border */
-  background-color: #F6F7F9; /* grayish background inside the tab card */
-  color: var(--neutral-600); /* grayish outline icon */
+  border: none !important; /* no border */
+  background-color: transparent !important; /* transparent nav background */
+  color: var(--color-neutral-600); /* grayish outline icon */
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none !important; /* no shadow */
 }
 
 .nav-tab-btn:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-  color: var(--text-emphasis-primary-default);
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  color: var(--color-neutral-950);
+}
+
+.nav-tab-btn.active {
+  background-color: transparent !important; /* transparent active bg */
+  border: none !important;
+  color: var(--color-neutral-1000) !important; /* active color is dark */
+  box-shadow: none !important; /* no active shadow */
 }
 
 .nav-icon-btn {
@@ -95,7 +103,7 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: var(--neutral-700);
+  color: var(--color-neutral-700);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,8 +156,8 @@
 .panel-header {
   height: 48px; /* matching Navbar height */
   min-height: 48px;
-  padding: 0 var(--spacing-24px);
-  border-bottom: none;
+  padding: 0 32px;
+  border-bottom: none; /* remove horizontal line above question title */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -161,7 +169,7 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 1.8px;
-  color: var(--neutral-800);
+  color: var(--color-neutral-800);
 }
 
 .panel-header-actions {
@@ -193,7 +201,8 @@
 .panel-scroll-content {
   flex-grow: 1;
   overflow-y: auto;
-  padding: var(--spacing-24px);
+  overflow-x: hidden;
+  padding: 32px 32px 40px 32px;
   box-sizing: border-box;
 }
 
@@ -212,20 +221,21 @@
 
 /* Typography matching image */
 .question-title-top {
-  font-size: 17px;
+  font-size: 32px;
   font-weight: 700;
-  letter-spacing: -0.2px;
-  color: var(--text-emphasis-primary-default);
+  letter-spacing: -0.6px;
+  color: var(--color-neutral-1000);
   margin-top: 0;
-  margin-bottom: var(--spacing-12px);
+  margin-bottom: 16px;
   font-family: var(--sans);
+  line-height: 1.25;
 }
 
 .question-meta-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-8px);
-  margin-bottom: var(--spacing-20px);
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .badge {
@@ -270,73 +280,136 @@
 }
 
 .meta-separator {
-  color: var(--neutral-300);
-  font-size: 12px;
+  color: var(--color-neutral-400);
+  font-size: 14px;
+  margin: 0 4px;
 }
 
-.question-main-title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
+.question-time-limit {
+  font-size: 13.5px;
+  color: var(--color-neutral-600);
   margin-top: 0;
-  margin-bottom: var(--spacing-16px);
-  color: var(--text-emphasis-primary-default);
+  margin-bottom: 24px;
+  font-family: var(--sans);
+  font-weight: 500;
 }
 
 .question-desc-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--neutral-800);
-  margin-bottom: var(--spacing-16px);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-neutral-800);
+  font-weight: 400;
+  margin-bottom: 12px;
 }
 
 .question-desc-text strong {
-  color: var(--text-emphasis-primary-default);
+  color: var(--color-neutral-1000);
   font-weight: 700;
 }
 
 .content-divider {
   border: none;
-  border-top: 1px solid var(--border-subtle-primary-default);
-  margin: var(--spacing-24px) 0;
+  border-top: 1px solid var(--color-neutral-200);
+  margin: 24px 0;
 }
 
 .section-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-emphasis-primary-default);
-  margin-top: 0;
-  margin-bottom: var(--spacing-8px);
+  color: var(--color-neutral-900);
+  margin-top: 32px;
+  margin-bottom: 12px;
+  font-family: var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .section-intro {
-  font-size: 14.5px;
-  color: var(--neutral-800);
-  margin-bottom: var(--spacing-12px);
+  font-size: 18px;
+  color: var(--color-neutral-800);
+  font-weight: 400;
+  margin-bottom: 16px;
 }
 
 .section-intro code {
-  color: #e02660;
-  background-color: #fff0f3;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 13.5px;
+  color: #db2777;
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.95em;
 }
 
 .details-list {
-  padding-left: var(--spacing-24px);
-  margin: 0 0 var(--spacing-16px) 0;
+  padding-left: 0 !important;
+  margin: 12px 0 16px 0;
+  list-style-type: none !important;
 }
 
-.details-list li {
-  font-size: 14.5px;
-  line-height: 1.7;
-  color: var(--neutral-800);
-  margin-bottom: var(--spacing-8px);
+/* Standard bullet list items (flat, like under YOUR TASK) */
+.details-list > li:not(:has(ul)) {
+  list-style-type: disc !important;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-neutral-800);
+  font-weight: 500;
+  margin-left: 20px !important;
+  margin-bottom: 6px;
+}
+
+/* Outer Entity Headers that contain attributes (e.g. CUSTOMER) */
+.details-list > li:has(ul) {
+  list-style-type: none !important;
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-neutral-900);
+  margin-top: 24px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Nested attributes list */
+.details-list > li > ul {
+  padding-left: 0 !important;
+  margin: 8px 0 16px 0 !important;
+}
+
+/* Nested attribute list items */
+.details-list > li > ul > li {
+  list-style-type: none !important;
+  margin-left: 20px !important;
+  font-size: 18px !important;
+  line-height: 1.5;
+  color: var(--color-neutral-800) !important;
+  font-weight: 500;
+  margin-bottom: 6px;
+  text-transform: none; /* override parent text-transform */
+  letter-spacing: normal;
 }
 
 .details-list li strong {
-  color: var(--text-emphasis-primary-default);
+  color: var(--color-neutral-1000);
+  font-weight: 700;
+}
+
+.details-list li em {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--color-neutral-700);
+}
+
+.details-ordered-list {
+  padding-left: 20px !important;
+  margin: 16px 0;
+}
+
+.details-ordered-list li {
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-neutral-800);
+  font-weight: 500;
+  margin-bottom: 12px;
+  list-style-type: decimal !important;
 }
 
 /* Test Cases Page Styles */
@@ -439,4 +512,27 @@
 .resize-handle:hover,
 .resize-handle:active {
   background-color: var(--brand-500);
+}
+
+/* Custom styling for rendered markdown content */
+.panel-scroll-content code {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #db2777; /* exact pink-600 matching coffee shop design */
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-weight: 600;
+  display: inline;
+}
+
+.question-subheader {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--color-neutral-1000);
+  margin-top: var(--spacing-20px);
+  margin-bottom: var(--spacing-8px);
+  font-family: var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

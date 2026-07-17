@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Body, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from er_validator import store
 from er_validator.core import validate
 from er_validator.engine.base import EngineError
@@ -6,6 +7,15 @@ from er_validator.name_matcher import DEFAULT_SIMILARITY_THRESHOLD, compare_enti
 from er_validator.schema import SchemaError
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 store.init_db()
 
 @app.get('/health')

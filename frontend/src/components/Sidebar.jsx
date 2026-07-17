@@ -1,9 +1,83 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import './Sidebar.css';
 
 export default function Sidebar() {
   const [width, setWidth] = useState(420);
   const isResizing = useRef(false);
+
+  const [questionData, setQuestionData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadQuestion() {
+      try {
+        const res = await fetch('http://localhost:8000/questions');
+        if (res.ok) {
+          const list = await res.json();
+          if (list && list.length > 0) {
+            const detailRes = await fetch(`http://localhost:8000/questions/${list[0].id}`);
+            if (detailRes.ok) {
+              const details = await detailRes.json();
+              setQuestionData(details);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching question from backend:', err);
+      }
+      
+      // Fallback banking question
+      setQuestionData({
+        title: 'Banking ER Diagram',
+        question: `A bank wants to design a database system to manage information about customers, accounts, and financial transactions.
+A customer may own multiple accounts, and some accounts are joint accounts owned by multiple customers.
+Each account records multiple financial transactions.
+A transaction cannot exist without being linked to an account.
+
+### TABLE AND ATTRIBUTES
+
+**CUSTOMER**
+- \`customer_id\` (Primary Key)
+- \`name\`
+- \`aadhaar\` (Unique)
+
+**ACCOUNT_HOLDER**
+- \`customer_id\` (Foreign Key → CUSTOMER.customer_id)
+- \`account_id\` (Foreign Key → ACCOUNT.account_id)
+- \`role\`
+- *Primary Key*: (customer_id, account_id)
+
+**ACCOUNT**
+- \`account_id\` (Primary Key)
+- \`account_type\`
+- \`balance\`
+
+**TRANSACTION**
+- \`transaction_id\` (Primary Key)
+- \`transaction_date\`
+- \`amount\`
+- \`account_id\` (Foreign Key → ACCOUNT.account_id)
+
+### YOUR TASK
+Using the above information:
+1. Draw a complete ER diagram for the banking system.
+2. Use the given entity names, attribute names, primary keys, and foreign keys exactly as specified.
+3. Clearly show:
+   - Entities
+   - Attributes
+   - Primary keys
+   - Foreign keys
+   - Relationships between entities
+   - Cardinality of each relationship`
+      });
+      setLoading(false);
+    }
+    
+    loadQuestion();
+  }, []);
 
   const startResizing = (e) => {
     isResizing.current = true;
@@ -39,7 +113,7 @@ export default function Sidebar() {
         
         <div className="sidebar-nav-lower">
           <div className="sidebar-nav-body">
-            <div className="nav-tab-btn" title="Question Description">
+            <div className="nav-tab-btn active" title="Question Description">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -68,77 +142,66 @@ export default function Sidebar() {
 
       {/* Main panel for content */}
       <div className="sidebar-panel">
-        <div className="sidebar-content-wrapper">
-          <header className="panel-header">
-            <span className="panel-category-title">QUESTION</span>
-            <div className="panel-header-actions">
-              <button className="panel-action-btn" title="Feedback">
-                <svg width="18" height="14" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="14" rx="2" ry="2" />
-                  <path d="M16 17l4 4v-4" />
-                  <line x1="12" y1="7" x2="12" y2="11" />
-                  <line x1="12" y1="14" x2="12.01" y2="14" />
-                </svg>
-              </button>
-              <button className="panel-action-btn" title="Close Panel">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </header>
-
-          <div className="panel-scroll-content">
-            <h2 className="question-title-top">React Signup form</h2>
-            
-            <div className="question-meta-row">
-              <span className="badge badge-difficulty">Medium</span>
-              <span className="meta-separator">▪</span>
-              <span className="badge badge-multiplier">2x</span>
-              <span className="meta-separator">▪</span>
-              <div className="badge badge-score">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="#FEB000" stroke="#D17300" strokeWidth="1.5" className="score-hexagon">
-                  <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
-                  <path d="M13 6 L8.5 13 H12 L11 18 L15.5 11 H12 L13 6 Z" fill="#FFF" stroke="none" />
-                </svg>
-                <span className="score-text">80/80</span>
-              </div>
-            </div>
-
-            <h1 className="question-main-title">React Signup Form</h1>
-            
-            <p className="question-desc-text">
-              You are asked to build a <strong>Signup Form component in React</strong> that collects user information and displays a success message upon submission.
-            </p>
-            
-            <p className="question-desc-text">
-              This form represents a simple user input flow where users can type into fields and submit their details.
-            </p>
-
-            <hr className="content-divider" />
-
-            <h3 className="section-title">What You're Starting With</h3>
-            <p className="section-intro">You already have a basic <code>SignUpForm</code> component with:</p>
-            <ul className="details-list">
-              <li>Four input fields</li>
-              <li>A <strong>SignUp</strong> button</li>
-              <li>A section where a message can be displayed</li>
-              <li>Four paragraph tags that should display the current values of all input fields.</li>
-            </ul>
-
-            <hr className="content-divider" />
-
-            <h3 className="section-title">Form Details</h3>
-            <p className="section-intro">The form should collect the following information:</p>
-            <ul className="details-list">
-              <li>First Name</li>
-              <li>Age</li>
-              <li>Email</li>
-              <li>Password</li>
-            </ul>
+        {loading ? (
+          <div className="sidebar-content-wrapper flex items-center justify-center h-full">
+            <span className="font-sans text-[14px] text-neutral-600">Loading question...</span>
           </div>
-        </div>
+        ) : (
+          <div className="sidebar-content-wrapper">
+            <header className="panel-header">
+              <span className="panel-category-title">QUESTION</span>
+              <div className="panel-header-actions">
+                <button className="panel-action-btn" title="Feedback">
+                  <svg width="18" height="14" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="14" rx="2" ry="2" />
+                    <path d="M16 17l4 4v-4" />
+                    <line x1="12" y1="7" x2="12" y2="11" />
+                    <line x1="12" y1="14" x2="12.01" y2="14" />
+                  </svg>
+                </button>
+                <button className="panel-action-btn" title="Close Panel">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </header>
+
+            <div className="panel-scroll-content">
+              <h2 className="question-title-top">{questionData?.title}</h2>
+              
+              <div className="question-meta-row">
+                <span className="badge badge-difficulty">Medium</span>
+                <span className="meta-separator">▪</span>
+                <span className="badge badge-multiplier">2x</span>
+                <span className="meta-separator">▪</span>
+                <div className="badge badge-score">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="#FEB000" stroke="#D17300" strokeWidth="1.5" className="score-hexagon">
+                    <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+                    <path d="M13 6 L8.5 13 H12 L11 18 L15.5 11 H12 L13 6 Z" fill="#FFF" stroke="none" />
+                  </svg>
+                  <span className="score-text">80/80</span>
+                </div>
+              </div>
+
+              <div className="question-time-limit">Time Limit: 2, Memory Limit: 256000</div>
+              
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => <p className="question-desc-text">{children}</p>,
+                  h3: ({ children }) => <h3 className="section-title">{children}</h3>,
+                  h4: ({ children }) => <h4 className="question-subheader">{children}</h4>,
+                  ul: ({ children }) => <ul className="details-list">{children}</ul>,
+                  ol: ({ children }) => <ol className="details-ordered-list">{children}</ol>,
+                  hr: () => <hr className="content-divider" />
+                }}
+              >
+                {questionData?.question}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
 
         {/* Drag resize handle */}
         <div className="resize-handle" onMouseDown={startResizing} />

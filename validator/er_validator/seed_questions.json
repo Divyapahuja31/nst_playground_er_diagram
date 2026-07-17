@@ -1,0 +1,74 @@
+[
+  {
+    "title": "Banking ER Diagram",
+    "question": "A bank wants to design a database system to manage information about customers, accounts, and financial transactions.\nA customer may own multiple accounts, and some accounts are joint accounts owned by multiple customers.\nEach account records multiple financial transactions.\nA transaction cannot exist without being linked to an account.\n\n### TABLE AND ATTRIBUTES\n\n- **CUSTOMER**\n  - `customer_id` (Primary Key)\n  - `name`\n  - `aadhaar` (Unique)\n- **ACCOUNT_HOLDER**\n  - `customer_id` (Foreign Key → CUSTOMER.customer_id)\n  - `account_id` (Foreign Key → ACCOUNT.account_id)\n  - `role`\n  - *Primary Key*: (customer_id, account_id)\n- **ACCOUNT**\n  - `account_id` (Primary Key)\n  - `account_type`\n  - `balance`\n- **TRANSACTION**\n  - `transaction_id` (Primary Key)\n  - `transaction_date`\n  - `amount`\n  - `account_id` (Foreign Key → ACCOUNT.account_id)\n\n### YOUR TASK\nUsing the above information:\n1. Draw a complete ER diagram for the banking system.\n2. Use the given entity names, attribute names, primary keys, and foreign keys exactly as specified.\n3. Clearly show:\n   - Entities\n   - Attributes\n   - Primary keys\n   - Foreign keys\n   - Relationships between entities\n   - Cardinality of each relationship",
+    "solution": {
+      "title": "Banking ER Diagram",
+      "tables": [
+        {
+          "id": 1,
+          "name": "CUSTOMER",
+          "fields": [
+            {"id": 11, "name": "customer_id", "type": "INT", "primaryKey": true},
+            {"id": 12, "name": "name", "type": "VARCHAR", "primaryKey": false},
+            {"id": 13, "name": "aadhaar", "type": "VARCHAR", "primaryKey": false, "unique": true}
+          ]
+        },
+        {
+          "id": 2,
+          "name": "ACCOUNT_HOLDER",
+          "fields": [
+            {"id": 21, "name": "customer_id", "type": "INT", "primaryKey": true},
+            {"id": 22, "name": "account_id", "type": "INT", "primaryKey": true},
+            {"id": 23, "name": "role", "type": "VARCHAR", "primaryKey": false}
+          ]
+        },
+        {
+          "id": 3,
+          "name": "ACCOUNT",
+          "fields": [
+            {"id": 31, "name": "account_id", "type": "INT", "primaryKey": true},
+            {"id": 32, "name": "account_type", "type": "VARCHAR", "primaryKey": false},
+            {"id": 33, "name": "balance", "type": "DECIMAL", "primaryKey": false}
+          ]
+        },
+        {
+          "id": 4,
+          "name": "TRANSACTION",
+          "fields": [
+            {"id": 41, "name": "transaction_id", "type": "INT", "primaryKey": true},
+            {"id": 42, "name": "transaction_date", "type": "DATE", "primaryKey": false},
+            {"id": 43, "name": "amount", "type": "DECIMAL", "primaryKey": false},
+            {"id": 44, "name": "account_id", "type": "INT", "primaryKey": false}
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "id": 1,
+          "cardinality": "one_to_many",
+          "startTable": 1,
+          "startField": 11,
+          "endTable": 2,
+          "endField": 21
+        },
+        {
+          "id": 2,
+          "cardinality": "one_to_many",
+          "startTable": 3,
+          "startField": 31,
+          "endTable": 2,
+          "endField": 22
+        },
+        {
+          "id": 3,
+          "cardinality": "one_to_many",
+          "startTable": 3,
+          "startField": 31,
+          "endTable": 4,
+          "endField": 44
+        }
+      ]
+    }
+  }
+]
