@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body, HTTPException
+from er_validator import store
+
 
 
 app = FastAPI()
