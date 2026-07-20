@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchQuestions, fetchQuestion } from '../api';
-import './Sidebar.css';
 
 export default function Sidebar({ onQuestionLoaded }) {
   const [width, setWidth] = useState(420);
@@ -101,16 +100,22 @@ Using the above information:
   };
 
   return (
-    <aside className="sidebar-container" style={{ width: `${width}px` }}>
+    <aside 
+      className="flex h-full min-h-full bg-neutral-50 border-r border-neutral-300 relative z-[5] box-border" 
+      style={{ width: `${width}px` }}
+    >
       {/* Left thin vertical navigation tab bar */}
-      <div className="sidebar-nav">
-        <div className="sidebar-nav-logo-area">
-          <span className="sidebar-logo-q">Q</span>
+      <div className="w-14 min-w-[56px] h-full flex flex-col box-border">
+        <div className="h-14 min-h-[56px] flex items-center justify-center bg-white box-border border-b border-neutral-100">
+          <span className="font-serif text-[20px] font-bold text-neutral-900 select-none">Q</span>
         </div>
         
-        <div className="sidebar-nav-lower">
-          <div className="sidebar-nav-body">
-            <div className="nav-tab-btn active" title="Question Description">
+        <div className="grow bg-[#F6F7F9] border-r border-neutral-200 rounded-tr-2xl flex flex-col justify-between items-center py-5 box-border">
+          <div className="flex flex-col items-center w-full box-border">
+            <div 
+              className="w-9 h-9 rounded-lg border-none bg-transparent text-neutral-950 flex items-center justify-center cursor-pointer transition-all duration-200 shadow-none active" 
+              title="Question Description"
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -120,15 +125,21 @@ Using the above information:
             </div>
           </div>
 
-          <div className="sidebar-nav-bottom">
-            <button className="nav-icon-btn" title="Settings">
+          <div className="flex flex-col items-center gap-4 w-full box-border">
+            <button 
+              className="w-8 h-8 rounded-lg border-none bg-transparent text-neutral-600 flex items-center justify-center cursor-pointer transition-all duration-200 hover:text-neutral-900 hover:bg-black/5" 
+              title="Settings"
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
             </button>
             
-            <div className="sidebar-brand-icon-wrapper" title="Newton School">
+            <div 
+              className="cursor-pointer flex items-center justify-center w-8 h-8 transition-transform duration-200 hover:scale-105" 
+              title="Newton School"
+            >
               <svg width="18" height="24" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 10H12M6 10V22C6 25.3137 8.68629 28 12 28C15.3137 28 18 25.3137 18 22V14M12 28V18M12 18L17.5 12.5M17.5 12.5H14M17.5 12.5V16" stroke="#0072F9" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -138,17 +149,20 @@ Using the above information:
       </div>
 
       {/* Main panel for content */}
-      <div className="sidebar-panel">
+      <div className="grow h-full bg-white relative flex flex-col overflow-hidden rounded-tl-none shadow-[-4px_0_16px_rgba(0,0,0,0.01)] box-border">
         {loading ? (
-          <div className="sidebar-content-wrapper flex items-center justify-center h-full">
+          <div className="flex flex-col h-full w-full overflow-hidden items-center justify-center">
             <span className="font-sans text-[14px] text-neutral-600">Loading question...</span>
           </div>
         ) : (
-          <div className="sidebar-content-wrapper">
-            <header className="panel-header">
-              <span className="panel-category-title">QUESTION</span>
-              <div className="panel-header-actions">
-                <button className="panel-action-btn" title="Feedback">
+          <div className="flex flex-col h-full w-full overflow-hidden">
+            <header className="h-12 min-h-[48px] px-8 border-b-0 flex items-center justify-between box-border">
+              <span className="font-sans text-[13px] font-bold tracking-[1.8px] text-neutral-700">QUESTION</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  className="w-8 h-8 rounded border-none bg-transparent text-neutral-500 flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-neutral-100 hover:text-neutral-900" 
+                  title="Feedback"
+                >
                   <svg width="18" height="14" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="14" rx="2" ry="2" />
                     <path d="M16 17l4 4v-4" />
@@ -156,7 +170,10 @@ Using the above information:
                     <line x1="12" y1="14" x2="12.01" y2="14" />
                   </svg>
                 </button>
-                <button className="panel-action-btn" title="Close Panel">
+                <button 
+                  className="w-8 h-8 rounded border-none bg-transparent text-neutral-500 flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-neutral-100 hover:text-neutral-900" 
+                  title="Close Panel"
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -165,33 +182,68 @@ Using the above information:
               </div>
             </header>
 
-            <div className="panel-scroll-content">
-              <h2 className="question-title-top">{questionData?.title}</h2>
+            <div className="grow overflow-y-auto overflow-x-hidden p-8 pb-10 box-border scrollbar-thin">
+              <h2 className="text-[32px] font-bold tracking-[-0.6px] text-neutral-950 mt-0 mb-4 font-sans leading-tight">{questionData?.title}</h2>
               
-              <div className="question-meta-row">
-                <span className="badge badge-difficulty">Medium</span>
-                <span className="meta-separator">▪</span>
-                <span className="badge badge-multiplier">2x</span>
-                <span className="meta-separator">▪</span>
-                <div className="badge badge-score">
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-[13px] font-bold px-2.5 py-1 box-border bg-amber-50 text-amber-700 border border-amber-200 rounded-full">Medium</span>
+                <span className="text-neutral-400 text-[14px] mx-1">▪</span>
+                <span className="bg-[#FFF1E5] text-[#C2410C] border border-[#FFD8C2] rounded-md text-[13px] font-bold px-2.5 py-1 box-border">2x</span>
+                <span className="text-neutral-400 text-[14px] mx-1">▪</span>
+                <div className="bg-transparent text-neutral-800 font-bold inline-flex items-center gap-2 p-0 text-[13px] box-border">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="#FEB000" stroke="#D17300" strokeWidth="1.5" className="score-hexagon">
                     <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
                     <path d="M13 6 L8.5 13 H12 L11 18 L15.5 11 H12 L13 6 Z" fill="#FFF" stroke="none" />
                   </svg>
-                  <span className="score-text">80/80</span>
+                  <span className="text-[15px] tracking-wide">80/80</span>
                 </div>
               </div>
 
-              <div className="question-time-limit">Time Limit: 2, Memory Limit: 256000</div>
+              <div className="text-[13.5px] text-neutral-500 mt-0 mb-6 font-sans font-medium">Time Limit: 2, Memory Limit: 256000</div>
               
               <ReactMarkdown
                 components={{
-                  p: ({ children }) => <p className="question-desc-text">{children}</p>,
-                  h3: ({ children }) => <h3 className="section-title">{children}</h3>,
-                  h4: ({ children }) => <h4 className="question-subheader">{children}</h4>,
-                  ul: ({ children }) => <ul className="details-list">{children}</ul>,
-                  ol: ({ children }) => <ol className="details-ordered-list">{children}</ol>,
-                  hr: () => <hr className="content-divider" />
+                  p: ({ children }) => <p className="text-[18px] leading-relaxed text-neutral-700 font-normal mb-3">{children}</p>,
+                  h3: ({ children }) => <h3 className="text-[20px] font-bold text-neutral-800 mt-8 mb-3 font-sans uppercase tracking-wider">{children}</h3>,
+                  h4: ({ children }) => <h4 className="text-[14px] font-bold text-neutral-900 mt-5 mb-2 font-sans uppercase tracking-wider">{children}</h4>,
+                  ul: ({ children }) => <ul className="pl-0 my-3 list-none">{children}</ul>,
+                  ol: ({ children }) => <ol className="pl-5 my-4">{children}</ol>,
+                  li: ({ children, ...props }) => {
+                    // Check if it has a sub-list (e.g. Attributes under Entity)
+                    const hasSubList = Array.isArray(children) && children.some(child => child?.props?.node?.type === 'list');
+                    if (hasSubList) {
+                      return (
+                        <li className="list-none font-sans text-[18px] font-bold text-neutral-800 mt-6 mb-2 uppercase tracking-wider">
+                          {children}
+                        </li>
+                      );
+                    }
+                    // If it is inside a nested list
+                    const isNested = props.className?.includes('nested') || (props.node?.depth && props.node.depth > 1);
+                    if (isNested) {
+                      return (
+                        <li className="list-none ml-5 text-[18px] leading-relaxed text-neutral-700 font-medium mb-1.5 normal-case tracking-normal">
+                          {children}
+                        </li>
+                      );
+                    }
+                    // Standard list item (either bullet or numbered)
+                    const isOrdered = props.ordered;
+                    if (isOrdered) {
+                      return (
+                        <li className="text-[18px] leading-relaxed text-neutral-700 font-medium mb-3 list-decimal">
+                          {children}
+                        </li>
+                      );
+                    }
+                    return (
+                      <li className="list-disc text-[18px] leading-relaxed text-neutral-700 font-medium ml-5 mb-1.5">
+                        {children}
+                      </li>
+                    );
+                  },
+                  hr: () => <hr className="border-none border-t border-neutral-200 my-6" />,
+                  code: ({ children }) => <code className="font-mono text-[13px] text-[#db2777] bg-transparent font-semibold inline">{children}</code>
                 }}
               >
                 {questionData?.question}
@@ -201,7 +253,10 @@ Using the above information:
         )}
 
         {/* Drag resize handle */}
-        <div className="resize-handle" onMouseDown={startResizing} />
+        <div 
+          className="absolute top-0 -right-[3px] w-1.5 h-full cursor-col-resize z-10 transition-colors duration-200 hover:bg-brand-500 active:bg-brand-500" 
+          onMouseDown={startResizing} 
+        />
       </div>
     </aside>
   );
