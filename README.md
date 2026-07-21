@@ -9,23 +9,12 @@ A full-stack tool for automatically grading student **Entity-Relationship (ER) d
 ```
 nst_playground_er_diagram/
 ├── frontend/          # React + Vite UI (TailwindCSS, React Flow)
-└── validator/         # FastAPI backend (Python)
-    ├── er_validator/  # Core validation package
-    │   ├── api.py           # FastAPI routes
-    │   ├── core.py          # Orchestrates the full validation pipeline
-    │   ├── schema.py        # Diagram data-model & parser
-    │   ├── graphBuilder.py  # Converts diagrams to vertex-colored graphs
-    │   ├── diagnostics.py   # Fast pre-check (counts & types) before graph iso
-    │   ├── name_matcher.py  # Entity name comparison (exact / semantic / fuzzy)
-    │   ├── store.py         # SQLite question bank (CRUD)
-    │   ├── ontology.json    # Domain synonym groups for semantic matching
-    │   ├── seed_questions.json  # Seed data loaded on first run
-    │   └── engine/
-    │       ├── base.py          # Abstract IsomorphismEngine + engine registry
-    │       ├── bliss_engine.py  # Bliss graph-iso binary wrapper (default)
-    │       └── native.py        # Pure-Python fallback engine
+└── backend/           # FastAPI backend (Python)
+    ├── app/           # Application code (main.py, db/, validator/, core/)
+    ├── alembic/        # Database DDL migration scripts
     ├── requirements.txt
-    └── setup.sh       # Clones and links the Bliss binary
+    ├── setup.sh       # Compiles the Bliss graph-iso binary
+    └── README.md
 ```
 
 ---

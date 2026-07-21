@@ -73,8 +73,8 @@ backend/
 │       ├── diagnostics.py        # Structural heuristics pre-checker
 │       ├── name_matcher.py       # Multi-stage entity name matching
 │       ├── ontology.json         # Domain-specific synonym dictionary
-│       ├── seed_questions.json   # Default seed question bank data
 │       └── engine/               # Isomorphism engine interfaces
+
 │           ├── base.py           # Engine interface definition and registry
 │           ├── native.py         # Subprocess runner for binary solvers
 │           └── bliss_engine.py   # Bliss DIMACS format builder and parser

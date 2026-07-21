@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENDOR_DIR="$SCRIPT_DIR/vendor"
 
-[ -d "$VENDOR_DIR" ] || mkdir "$VENDOR_DIR"
+[ -d "$VENDOR_DIR" ] || mkdir -p "$VENDOR_DIR"
 cd "$VENDOR_DIR"
 
 if [ ! -d bliss ]; then
@@ -30,6 +30,10 @@ if [ ! -f bliss/bliss ]; then
       exit 1
     fi
   fi
+
+  # Clean old build cache to avoid CMake source directory conflicts
+  rm -rf bliss/build
+  mkdir -p bliss/build
 
   cmake -S bliss -B bliss/build -DCMAKE_BUILD_TYPE=Release
   cmake --build bliss/build
