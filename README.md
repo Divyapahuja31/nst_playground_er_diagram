@@ -69,21 +69,28 @@ nst_playground_er_diagram/
 ### Backend
 
 ```bash
-cd validator
+cd backend
 
 # 1. Create and activate a virtual environment
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 
 # 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Download and link the Bliss binary
+# 3. Compile the Bliss graph isomorphism binary
 bash setup.sh
 
-# 4. Start the API server
-uvicorn er_validator.api:app --reload
+# 4. Copy .env template & set DATABASE_URL
+cp .env.example .env
+
+# 5. Run database migrations
+alembic upgrade head
+
+# 6. Start the API server
+uvicorn app.main:app --reload --port 8000
 ```
+
 
 The API will be available at `http://localhost:8000`.
 

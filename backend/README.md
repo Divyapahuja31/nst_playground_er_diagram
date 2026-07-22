@@ -196,11 +196,19 @@ alembic downgrade -1
 
 ## Running the Backend
 
+Make sure your virtual environment is activated (`source .venv/bin/activate`), or call the binaries directly from `.venv/bin/`.
+
 Start the development server with hot reloading enabled:
 
 ```bash
+# Option A: With virtual environment activated
+source .venv/bin/activate
 uvicorn app.main:app --reload --port 8000
+
+# Option B: Direct path
+.venv/bin/uvicorn app.main:app --reload --port 8000
 ```
+
 
 The application will launch on **`http://localhost:8000`**.
 

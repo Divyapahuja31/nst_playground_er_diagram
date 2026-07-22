@@ -6,6 +6,8 @@ from app.validator.engine.base import EngineError
 from app.validator.name_matcher import DEFAULT_SIMILARITY_THRESHOLD, compare_entities
 from app.validator.schema import SchemaError
 
+from app.modules.auth.router import router as auth_router
+
 app = FastAPI()
 
 app.add_middleware(
@@ -16,7 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+
 @app.on_event("startup")
+
 def on_startup():
     store.init_db()
 
