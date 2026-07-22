@@ -1,8 +1,8 @@
-import { defineConfig } from "cypress";
+import { defineConfig } from 'cypress';
 
 export default defineConfig({
   e2e: {
-    baseUrl: "http://localhost:5173",
+    baseUrl: 'http://localhost:5173',
     supportFile: false,
     viewportWidth: 1280,
     viewportHeight: 720,
@@ -11,8 +11,11 @@ export default defineConfig({
 
   component: {
     devServer: {
-      framework: "react",
-      bundler: "vite",
+      framework: 'react',
+      bundler: 'vite',
     },
+    indexHtmlFile: 'cypress/support/component-index.html',
+    supportFile: 'cypress/support/component.jsx',
+    specPattern: 'cypress/component/**/*.cy.{js,jsx,ts,tsx}',
   },
 });
