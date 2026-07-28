@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchQuestions, createQuestion, updateQuestion, deleteQuestion } from '../api';
 
-export default function Dashboard({ user, onSelectQuestion }) {
+export default function Dashboard({ user, onSelectQuestion, onLogout }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +33,8 @@ export default function Dashboard({ user, onSelectQuestion }) {
     loadQuestions();
   }, []);
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setError('');
@@ -41,6 +43,7 @@ export default function Dashboard({ user, onSelectQuestion }) {
       return;
     }
 
+    setIsCreating(true);
     try {
       const emptySolution = { tables: [], edges: [] };
       await createQuestion({
@@ -55,6 +58,8 @@ export default function Dashboard({ user, onSelectQuestion }) {
       loadQuestions();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -89,6 +94,13 @@ export default function Dashboard({ user, onSelectQuestion }) {
     setError('');
   };
 
+  const getInitials = () => {
+    if (!user || !user.full_name) return '??';
+    const parts = user.full_name.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
   // Filters logic
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -98,12 +110,17 @@ export default function Dashboard({ user, onSelectQuestion }) {
   });
 
   return (
-    <div className="flex-1 w-full min-h-screen bg-[#f8fafc] px-8 py-10 font-sans text-neutral-800 flex flex-col items-center">
+    <div className="w-full h-screen overflow-y-auto bg-[#f8fafc] px-8 py-10 font-sans text-neutral-800 flex flex-col items-center scrollbar-thin box-border">
       <div className="w-full max-w-6xl">
         
         {/* Top Header Bar */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 pb-6 border-b border-neutral-200/70">
           <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-[11px] font-extrabold uppercase tracking-wider">
+                {user?.role} Dashboard
+              </span>
+            </div>
             <h1 className="text-[28px] font-extrabold text-neutral-900 tracking-tight m-0">
               Welcome back, {user?.full_name || 'User'}
             </h1>
@@ -111,14 +128,30 @@ export default function Dashboard({ user, onSelectQuestion }) {
               Select an ER diagram assignment below to start modeling.
             </p>
           </div>
-          {isTeacher && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-[13px] shadow-sm hover:shadow transition-all duration-200 border-none cursor-pointer"
-            >
-              + Create Question
-            </button>
-          )}
+
+          <div className="flex items-center gap-4">
+            {isTeacher && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-5 h-10 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-[13px] shadow-sm hover:shadow transition-all duration-200 border-none cursor-pointer flex items-center gap-1.5"
+              >
+                + Create Question
+              </button>
+            )}
+
+            {/* Profile & Sign Out Widget */}
+            <div className="flex items-center gap-3 pl-3 border-l border-neutral-200">
+              <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-[13px] shadow-sm">
+                {getInitials()}
+              </div>
+              <button
+                onClick={onLogout}
+                className="px-3 py-2 rounded-xl text-[12px] font-bold text-red-600 hover:bg-red-50 transition-colors border border-red-200 bg-white cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Filter Controls Row */}
@@ -157,15 +190,16 @@ export default function Dashboard({ user, onSelectQuestion }) {
 
         {/* Questions Catalog */}
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <span className="text-[14px] text-neutral-500 font-medium">Loading questions...</span>
+          <div className="flex flex-col justify-center items-center py-20">
+            <div className="w-9 h-9 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin mb-3"></div>
+            <span className="text-[14px] text-neutral-500 font-medium">Loading questions catalog...</span>
           </div>
         ) : filteredQuestions.length === 0 ? (
           <div className="bg-white rounded-2xl border border-neutral-200/80 p-12 text-center shadow-xs">
             <p className="text-[14px] text-neutral-500 m-0">No questions match your current search criteria.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-3.5 pb-16">
             {filteredQuestions.map((q) => {
               const userIdStr = String(user?.id || '').toLowerCase();
               const canManage = userIdStr === String(q.created_by || '').toLowerCase() ||
@@ -328,9 +362,17 @@ export default function Dashboard({ user, onSelectQuestion }) {
 
               <button
                 type="submit"
-                className="h-11 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-[13px] shadow-sm transition-all flex items-center justify-center mt-3 cursor-pointer border-none"
+                disabled={isCreating}
+                className="h-11 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-[13px] shadow-sm transition-all flex items-center justify-center mt-3 cursor-pointer border-none gap-2"
               >
-                Create Question
+                {isCreating ? (
+                  <>
+                    <span className="animate-spin text-white">🌀</span>
+                    Creating Assignment…
+                  </>
+                ) : (
+                  'Create Question'
+                )}
               </button>
             </form>
           </div>
