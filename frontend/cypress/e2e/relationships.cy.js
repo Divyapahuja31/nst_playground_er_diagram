@@ -14,7 +14,14 @@ describe('Relationships Management Test', () => {
       }
     }).as('getQuestionDetail');
 
-    cy.visit('/');
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('auth_token', 'fake-token');
+        win.localStorage.setItem('auth_user', JSON.stringify({ id: '1', role: 'STUDENT', full_name: 'Test Student' }));
+      }
+    });
+    cy.wait('@getQuestions');
+    cy.contains('Solve Assignment').click();
   });
 
   it('allows creating tables, switching to relations tab, and editing relationship properties', () => {

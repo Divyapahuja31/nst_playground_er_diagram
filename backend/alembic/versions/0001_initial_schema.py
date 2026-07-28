@@ -65,6 +65,8 @@ def upgrade() -> None:
         sa.Column("difficulty",   difficulty_enum,       nullable=False,   server_default="MEDIUM"),
         sa.Column("created_by",   UUID(as_uuid=True),  sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("is_published", sa.Boolean(),          nullable=False,   server_default="false"),
+        sa.Column("reviewer_id",  UUID(as_uuid=True),  sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("owner_id",     UUID(as_uuid=True),  sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("created_at",   sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("updated_at",   sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
     )

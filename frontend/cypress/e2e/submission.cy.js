@@ -2,13 +2,13 @@ describe('Submission & Validation Flow Test', () => {
   beforeEach(() => {
     cy.intercept('GET', '**/questions', {
       statusCode: 200,
-      body: [{ id: 'q1', title: 'Banking ER Diagram' }]
+      body: [{ id: '1', title: 'Banking ER Diagram' }]
     }).as('getQuestions');
 
-    cy.intercept('GET', '**/questions/q1', {
+    cy.intercept('GET', '**/questions/1*', {
       statusCode: 200,
       body: {
-        id: 'q1',
+        id: '1',
         title: 'Banking ER Diagram',
         question: 'Design a banking system with CUSTOMER and ACCOUNT.'
       }
@@ -36,11 +36,18 @@ describe('Submission & Validation Flow Test', () => {
       }
     }).as('submitSolution');
 
-    cy.visit('/');
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('auth_token', 'fake-token');
+        win.localStorage.setItem('auth_user', JSON.stringify({ id: '1', role: 'STUDENT', full_name: 'Test Student' }));
+      }
+    });
+    cy.wait('@getQuestions');
+    cy.contains('Solve Assignment').click();
   });
 
   it('validates guardrails when submitting without tables', () => {
-    cy.wait(['@getQuestions', '@getQuestionDetail']);
+    cy.wait('@getQuestionDetail');
 
     // Click Submit Solution without adding tables
     cy.contains('button', 'Submit Solution').click();
@@ -50,7 +57,7 @@ describe('Submission & Validation Flow Test', () => {
   });
 
   it('submits a valid diagram, verifies validation modal, and resets workspace', () => {
-    cy.wait(['@getQuestions', '@getQuestionDetail']);
+    cy.wait('@getQuestionDetail');
 
     // 1. Create CUSTOMER table
     cy.contains('button', 'Add Table').click();

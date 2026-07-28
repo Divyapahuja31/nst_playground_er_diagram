@@ -32,27 +32,19 @@ export default function TableNode({ data }) {
             key={i}
             className="relative flex items-center justify-between px-3 py-[7px] border-t border-neutral-200"
           >
-            {/* Left: connection handles + column name */}
-            <div className="flex items-center gap-2 relative">
-              <div className="relative w-[7px] h-[7px] shrink-0 flex items-center justify-center">
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={`target-${col.name}`}
-                  className="!w-[7px] !h-[7px] !bg-[#4a90e2] !border-0 !rounded-full !absolute !transform-none !left-0 !top-0 !m-0"
-                />
-                <Handle
-                  type="source"
-                  position={Position.Left}
-                  id={`source-${col.name}`}
-                  className="!w-[15px] !h-[15px] !bg-transparent !border-0 !rounded-full !absolute !transform-none !left-[-4px] !top-[-4px] !m-0 z-10 cursor-pointer"
-                />
-              </div>
-              <span className="text-[13px] font-medium text-neutral-800">{col.name}</span>
-            </div>
+            {/* Left target handle */}
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={`target-${col.name}`}
+              className="!w-2.5 !h-2.5 !bg-[#4a90e2] !border-none !rounded-full !absolute"
+              style={{ left: '-5px', top: '50%', transform: 'translateY(-50%)' }}
+            />
 
-            {/* Right: type + key icon */}
-            <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-medium text-neutral-800 ml-1.5">{col.name}</span>
+
+            {/* Right: type + key icon + source handle */}
+            <div className="flex items-center gap-1.5 mr-1.5">
               <span
                 className="text-[12px] font-semibold"
                 style={{ color: TYPE_COLORS[col.type] ?? '#555' }}
@@ -63,6 +55,15 @@ export default function TableNode({ data }) {
                 <span className="text-[14px]" title="Primary Key">🔑</span>
               )}
             </div>
+
+            {/* Right source handle */}
+            <Handle
+              type="source"
+              position={Position.Right}
+              id={`source-${col.name}`}
+              className="!w-2.5 !h-2.5 !bg-[#4a90e2] !border-none !rounded-full !absolute"
+              style={{ right: '-5px', top: '50%', transform: 'translateY(-50%)' }}
+            />
           </div>
         ))}
       </div>

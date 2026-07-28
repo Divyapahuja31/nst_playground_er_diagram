@@ -58,37 +58,98 @@ def compare_names_endpoint(payload: dict = Body(...)):
         custom_ontology=payload.get('custom_ontology') or (),
     )
 
+from fastapi import Depends
+from app.modules.auth.dependencies import get_current_user, require_teacher
+from app.db.models import User, UserRole
+
 @app.get('/questions')
-def questions_list():
-    return store.list_questions()
+def questions_list(current_user: User = Depends(get_current_user)):
+    all_qs = store.list_questions()
+    if current_user.role == UserRole.STUDENT:
+        return [q for q in all_qs if q.get('is_published')]
+    return all_qs
 
 @app.post('/questions')
-def questions_create(payload: dict = Body(...)):
+def questions_create(payload: dict = Body(...), current_user: User = Depends(require_teacher)):
     title = payload.get('title')
     question = payload.get('question')
     solution = payload.get('solution')
+    reviewer_email = payload.get('reviewer_email')
+    owner_email = payload.get('owner_email')
+    
     if not title or not question or solution is None:
         raise HTTPException(422, 'body must contain "title", "question" and "solution"')
-    return {'id': store.create_question(title, question, solution)}
-
+        
+    return {
+        'id': store.create_question(
+            title, question, solution,
+            created_by_id=current_user.id,
+            reviewer_email=reviewer_email,
+            owner_email=owner_email,
+            is_published=False  # default unpublished
+        )
+    }
 
 @app.get('/questions/{question_id}')
-def questions_get(question_id: str, include_solution: bool = False):
+def questions_get(question_id: str, include_solution: bool = False, current_user: User = Depends(get_current_user)):
     question = store.get_question(question_id)
     if question is None:
         raise HTTPException(404, f'no question with id {question_id}')
-    if not include_solution:
-        del question['solution']
+        
+    # Security Rule: Students cannot see unpublished questions
+    if current_user.role == UserRole.STUDENT and not question.get('is_published'):
+        raise HTTPException(403, 'This question is not published.')
+
+    # Security Rule: Students & Reviewers CANNOT see the solution
+    is_student = current_user.role == UserRole.STUDENT
+    is_reviewer = str(current_user.id) == str(question.get('reviewer_id'))
+    
+    if is_student or is_reviewer or not include_solution:
+        if 'solution' in question:
+            del question['solution']
+            
     return question
 
+def check_question_permission(question: dict, user: User, action: str = "edit"):
+    is_creator = str(user.id) == str(question.get('created_by'))
+    is_owner = str(user.id) == str(question.get('owner_id'))
+    is_admin = user.role == UserRole.ADMIN
+    if not (is_creator or is_owner or is_admin):
+        raise HTTPException(403, f'Only the Creator, Owner, or Admin can {action} this question.')
+
 @app.delete('/questions/{question_id}')
-def questions_delete(question_id: str):
+def questions_delete(question_id: str, current_user: User = Depends(require_teacher)):
+    question = store.get_question(question_id)
+    if question is None:
+        raise HTTPException(404, f'no question with id {question_id}')
+        
+    check_question_permission(question, current_user, "delete")
+        
     if not store.delete_question(question_id):
         raise HTTPException(404, f'no question with id {question_id}')
     return {'ok': True }
 
+@app.put('/questions/{question_id}')
+def questions_update(question_id: str, payload: dict = Body(...), current_user: User = Depends(require_teacher)):
+    question = store.get_question(question_id)
+    if question is None:
+        raise HTTPException(404, f'no question with id {question_id}')
+        
+    check_question_permission(question, current_user, "edit")
+
+    title = payload.get('title')
+    description = payload.get('question')
+    solution = payload.get('solution')
+    reviewer_email = payload.get('reviewer_email')
+    owner_email = payload.get('owner_email')
+    is_published = payload.get('is_published')
+
+    if not store.update_question(question_id, title, description, solution, reviewer_email, owner_email, is_published):
+        raise HTTPException(404, f'no question with id {question_id}')
+    return {'ok': True}
+
 @app.post('/questions/{question_id}/submit')
-def questions_submit(question_id: str, payload: dict = Body(...)):
+def questions_submit(question_id: str, payload: dict = Body(...), current_user: User = Depends(get_current_user)):
     question = store.get_question(question_id)
     if question is None:
         raise HTTPException(404, f'no question with id {question_id}')
