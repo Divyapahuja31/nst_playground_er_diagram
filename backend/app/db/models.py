@@ -131,12 +131,24 @@ class Question(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    reviewer_id  = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    owner_id     = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     is_published = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at   = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at   = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     # ── Relationships ────────────────────
     creator     = relationship("User",        back_populates="questions",  foreign_keys=[created_by])
+    reviewer    = relationship("User",        foreign_keys=[reviewer_id])
+    owner       = relationship("User",        foreign_keys=[owner_id])
     playgrounds = relationship("Playground",  back_populates="question")
     submissions = relationship("Submission",  back_populates="question")
 
