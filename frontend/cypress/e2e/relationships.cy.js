@@ -20,6 +20,7 @@ describe('Relationships Management Test', () => {
         win.localStorage.setItem('auth_user', JSON.stringify({ id: '1', role: 'STUDENT', full_name: 'Test Student' }));
       }
     });
+    cy.wait('@getQuestions');
     cy.contains('Solve Assignment').click();
   });
 
