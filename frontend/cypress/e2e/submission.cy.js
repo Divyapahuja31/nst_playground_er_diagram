@@ -49,35 +49,35 @@ describe('Submission & Validation Flow Test', () => {
   it('validates guardrails when submitting without tables', () => {
     cy.wait('@getQuestionDetail');
 
-    // Click Submit Solution without adding tables
+    cy.log('Step 1.1: Click Submit Solution without adding tables');
     cy.contains('button', 'Submit Solution').click();
 
-    // Verify error notification/text is displayed
+    cy.log('Step 1.2: Verify error notification is displayed');
     cy.contains('Add at least one table before submitting.').should('be.visible');
   });
 
   it('submits a valid diagram, verifies validation modal, and resets workspace', () => {
     cy.wait('@getQuestionDetail');
 
-    // 1. Create CUSTOMER table
+    cy.log('Step 2.1: Create CUSTOMER table');
     cy.contains('button', 'Add Table').click();
     cy.get('input[placeholder="Enter table name..."]').type('CUSTOMER');
     cy.contains('button', /^Add$/).click();
 
-    // 2. Submit solution
+    cy.log('Step 2.2: Submit solution and wait for API');
     cy.contains('button', 'Submit Solution').click();
     cy.wait('@submitSolution');
 
-    // 3. Verify ValidationResult modal appears
+    cy.log('Step 2.3: Verify ValidationResult modal values');
     cy.contains('Solution Accepted!').should('be.visible');
     cy.contains('100/100').should('be.visible');
     cy.contains('Your diagram structure and relationships match the expected solution.').should('be.visible');
 
-    // 4. Close modal by clicking backdrop
+    cy.log('Step 2.4: Close validation modal by clicking backdrop');
     cy.get('.fixed.inset-0.z-\\[100\\] .bg-black\\/40').click({ force: true });
     cy.contains('Solution Accepted!').should('not.exist');
 
-    // 5. Reset workspace
+    cy.log('Step 2.5: Reset workspace canvas');
     cy.get('button[title="Reset"]').click();
     cy.get('.flex-1.overflow-y-auto').should('not.contain', 'CUSTOMER');
   });
