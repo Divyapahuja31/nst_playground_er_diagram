@@ -1,14 +1,12 @@
 import json
 import time
 import uuid
-from pathlib import Path
 from app.db.db import SessionLocal
-from app.db.models import User, Question, Playground, UserRole, Difficulty, PlaygroundType
+from app.db.models import User, Question, Workspace, Difficulty
 
 
 def init_db():
     pass
-
 
 
 def list_questions():
@@ -52,15 +50,15 @@ def get_question(question_id):
         if not q:
             return None
 
-        sol_pg = (
-            db.query(Playground)
+        sol_ws = (
+            db.query(Workspace)
             .filter(
-                Playground.question_id == q.id,
-                Playground.type == PlaygroundType.QUESTION_SOLUTION,
+                Workspace.question_id == q.id,
+                Workspace.is_solution.is_(True),
             )
             .first()
         )
-        solution = sol_pg.diagram_json if sol_pg else {}
+        solution = sol_ws.diagram_json if sol_ws else {}
         if isinstance(solution, str):
             solution = json.loads(solution)
 
@@ -108,15 +106,15 @@ def create_question(title: str, question: str, solution, created_by_id=None, rev
         db.refresh(q)
 
         if created_by_id:
-            pg = Playground(
+            ws = Workspace(
                 id=uuid.uuid4(),
                 name=f"{title} Solution",
                 owner_id=created_by_id,
                 question_id=q.id,
-                type=PlaygroundType.QUESTION_SOLUTION,
+                is_solution=True,
                 diagram_json=solution,
             )
-            db.add(pg)
+            db.add(ws)
             db.commit()
 
         return str(q.id)
@@ -168,7 +166,7 @@ def update_question(question_id: str, title: str = None, question: str = None, s
                 reviewer = db.query(User).filter(User.email == reviewer_email).first()
                 if reviewer:
                     q.reviewer_id = reviewer.id
-        
+
         if owner_email is not None:
             if owner_email == "":
                 q.owner_id = None
@@ -177,30 +175,29 @@ def update_question(question_id: str, title: str = None, question: str = None, s
                 if owner:
                     q.owner_id = owner.id
 
-        # Update solution playground if solution is provided
         if solution is not None:
-            sol_pg = (
-                db.query(Playground)
+            sol_ws = (
+                db.query(Workspace)
                 .filter(
-                    Playground.question_id == q.id,
-                    Playground.type == PlaygroundType.QUESTION_SOLUTION,
+                    Workspace.question_id == q.id,
+                    Workspace.is_solution.is_(True),
                 )
                 .first()
             )
-            if sol_pg:
-                sol_pg.diagram_json = solution
+            if sol_ws:
+                sol_ws.diagram_json = solution
             else:
                 teacher_id = q.created_by
                 if teacher_id:
-                    pg = Playground(
+                    ws = Workspace(
                         id=uuid.uuid4(),
                         name=f"{q.title} Solution",
                         owner_id=teacher_id,
                         question_id=q.id,
-                        type=PlaygroundType.QUESTION_SOLUTION,
+                        is_solution=True,
                         diagram_json=solution,
                     )
-                    db.add(pg)
+                    db.add(ws)
 
         db.commit()
         return True
