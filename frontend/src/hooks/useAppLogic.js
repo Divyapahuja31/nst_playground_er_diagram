@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
-import { submitSolution } from '../api';
-import { serializeDiagram } from '../diagramSerializer';
+import { submitSolution, loginUser, registerUser, fetchQuestion } from '../api';
+import { serializeDiagram, deserializeDiagram } from '../diagramSerializer';
 
 const initialNodes = [];
 const initialEdges = [];
@@ -10,6 +10,17 @@ export default function useAppLogic() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [tables, setTables] = useState([]);
+
+  const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
+  const [user, setUser] = useState(() => {
+    try {
+      const u = localStorage.getItem('auth_user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [authError, setAuthError] = useState(null);
 
   const [questionId, setQuestionId] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
@@ -83,6 +94,12 @@ export default function useAppLogic() {
 
   const handleQuestionLoaded = (id) => {
     setQuestionId(id);
+    if (!id) {
+      setTables([]);
+      setNodes([]);
+      setEdges([]);
+      setValidationResult(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -118,6 +135,60 @@ export default function useAppLogic() {
     setSubmitError(null);
   };
 
+  const handleLogin = async (email, password) => {
+    setAuthError(null);
+    try {
+      const data = await loginUser(email, password);
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      setToken(data.access_token);
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      setAuthError(err.message);
+      return false;
+    }
+  };
+
+  const handleRegister = async (fullName, email, password, role) => {
+    setAuthError(null);
+    try {
+      const data = await registerUser(fullName, email, password, role);
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      setToken(data.access_token);
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      setAuthError(err.message);
+      return false;
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    setToken(null);
+    setUser(null);
+    handleReset();
+  };
+
+  const handleLoadSolution = async (qId) => {
+    try {
+      const q = await fetchQuestion(qId, true); // True request for solution
+      if (q && q.solution) {
+        const { tables: loadedTables, nodes: loadedNodes, edges: loadedEdges } = deserializeDiagram(q.solution);
+        setTables(loadedTables);
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+      } else {
+        alert("This question does not have a reference solution diagram, or you do not have permission to view it.");
+      }
+    } catch (err) {
+      alert("Failed to load solution: " + err.message);
+    }
+  };
+
   if (typeof window !== 'undefined' && window.Cypress) {
     window.__testTables = tables;
     window.__testConnect = (params) => {
@@ -128,9 +199,11 @@ export default function useAppLogic() {
   return {
     nodes, edges, tables,
     submitting, submitError, validationResult,
+    token, user, authError, questionId,
     onNodesChange, onEdgesChange, onConnect,
     setEdges, setValidationResult,
     handleAddTable, handleUpdateTable, handleDeleteTable,
-    handleQuestionLoaded, handleSubmit, handleReset
+    handleQuestionLoaded, handleSubmit, handleReset,
+    handleLogin, handleRegister, handleLogout, handleLoadSolution
   };
 }
