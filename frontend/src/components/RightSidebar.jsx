@@ -41,8 +41,16 @@ export default function RightSidebar({ tables = [], edges = [], setEdges, onAddT
     setShowAddModal(false);
   };
 
-  const handleUpdateEdge = (edgeId, data) => {
-    setEdges(eds => eds.map(e => e.id === edgeId ? { ...e, data } : e));
+  const handleUpdateEdge = (edgeId, data, source, target) => {
+    setEdges(eds => eds.map(e => {
+      if (e.id === edgeId) {
+        const updated = { ...e, data };
+        if (source !== undefined) updated.source = source;
+        if (target !== undefined) updated.target = target;
+        return updated;
+      }
+      return e;
+    }));
   };
 
   const handleDeleteEdge = (edgeId) => {

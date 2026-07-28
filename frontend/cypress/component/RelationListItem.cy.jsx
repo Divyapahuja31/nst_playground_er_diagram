@@ -35,8 +35,8 @@ describe('<RelationListItem /> Component', () => {
 
     cy.log('Step 1.3: Verify inputs are populated with values');
     cy.get('input[value="users_profiles_rel"]').should('be.visible');
-    cy.get('input[value="Users"]').should('be.visible');
-    cy.get('input[value="Profiles"]').should('be.visible');
+    cy.get('select').eq(0).should('have.value', 'tbl-1');
+    cy.get('select').eq(2).should('have.value', 'tbl-2');
   });
 
   it('triggers onUpdate when editing relationship name or cardinality', () => {
@@ -58,7 +58,7 @@ describe('<RelationListItem /> Component', () => {
     cy.get('@onUpdateSpy').should('have.been.called');
 
     cy.log('Step 2.3: Change cardinality select input');
-    cy.get('select').first().select('One to Many');
+    cy.get('select').eq(4).select('One to Many');
     cy.get('@onUpdateSpy').should('have.been.called');
   });
 
