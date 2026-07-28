@@ -69,7 +69,7 @@ describe('Relationships Management Test', () => {
     cy.log('Step 8: Expand relationship item and edit properties');
     cy.get('.flex-1.overflow-y-auto').contains('users_profiles_rel').click();
     cy.get('input[value="users_profiles_rel"]').type('{selectall}{backspace}user_profile_link');
-    cy.get('.flex-1.overflow-y-auto').find('select').first().select('One to Many');
+    cy.get('.flex-1.overflow-y-auto').find('select').eq(4).select('One to Many');
 
     cy.log('Step 9: Verify name updated');
     cy.get('.flex-1.overflow-y-auto').should('contain', 'user_profile_link');
