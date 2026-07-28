@@ -15,7 +15,13 @@ describe('Table Management Test Suite', () => {
       }
     }).as('getQuestionDetail');
 
-    cy.visit('/');
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('auth_token', 'fake-token');
+        win.localStorage.setItem('auth_user', JSON.stringify({ id: '1', role: 'STUDENT', full_name: 'Test Student' }));
+      }
+    });
+    cy.contains('Solve Assignment').click();
   });
 
   it('1. Adds and deletes a table', () => {
