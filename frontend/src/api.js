@@ -27,11 +27,45 @@ export async function fetchQuestion(id, includeSolution = false) {
   return res.json();
 }
 
+export async function fetchWorkspace(questionId) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/workspace`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to fetch workspace for question ${questionId}: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchOfficialSolution(questionId) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/solution`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to fetch solution: ${res.status}`);
+  }
+  return res.json();
+}
+
+
+export async function saveWorkspace(questionId, diagramJson) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/workspace`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ diagram_json: diagramJson }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to save workspace: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function submitSolution(questionId, studentDiagram) {
+  const payload = studentDiagram ? { student: studentDiagram } : {};
   const res = await fetch(`${API_BASE}/questions/${questionId}/submit`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ student: studentDiagram }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -39,6 +73,7 @@ export async function submitSolution(questionId, studentDiagram) {
   }
   return res.json();
 }
+
 
 export async function loginUser(email, password) {
   const res = await fetch(`${API_BASE}/auth/login`, {
