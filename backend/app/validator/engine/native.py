@@ -9,8 +9,10 @@ from pathlib import Path
 
 from .base import ColoredGraph, EngineError, EngineResult, IsomorphismEngine
 
-VENDOR_DIR = Path(__file__).resolve().parents[4] / 'vendor'
+_backend_dir = Path(__file__).resolve().parents[3]
+VENDOR_DIR = _backend_dir / 'vendor' if (_backend_dir / 'vendor').is_dir() else Path(__file__).resolve().parents[4] / 'vendor'
 _CYCLE_RE = re.compile(r'\(([^()]+)\)')
+
 
 
 def resolve_binary(env_var, paths_key, fallback):
