@@ -67,3 +67,67 @@ export function serializeDiagram(tables, edges) {
 
   return { tables: backendTables, relationships };
 }
+
+export function deserializeDiagram(diagram) {
+  if (!diagram || !diagram.tables) return { tables: [], nodes: [], edges: [] };
+  
+  const tables = [];
+  const nodes = [];
+  const edges = [];
+  const tableIdMap = {}; 
+  const fieldIdMap = {}; 
+  
+  diagram.tables.forEach((t, idx) => {
+    const tableStrId = `table-${t.id || idx + 1}`;
+    tableIdMap[t.id] = tableStrId;
+    
+    const columns = (t.fields || []).map((f) => {
+      fieldIdMap[f.id] = f.name;
+      return {
+        name: f.name,
+        type: f.type || 'VARCHAR',
+        isPrimary: !!f.primaryKey,
+        isNotNull: !!f.notNull,
+        isUnique: !!f.unique,
+        isAutoIncrement: !!f.increment,
+      };
+    });
+    
+    tables.push({ id: tableStrId, name: t.name, columns });
+    nodes.push({
+      id: tableStrId,
+      type: 'tableNode',
+      position: { x: 100 + (idx % 3) * 220, y: 80 + Math.floor(idx / 3) * 185 },
+      data: { label: t.name, columns },
+    });
+  });
+  
+  const CARDINALITY_REVERSE_MAP = {
+    'one_to_one': 'One to One',
+    'one_to_many': 'One to Many',
+    'many_to_one': 'Many to One',
+    'many_to_many': 'Many to Many',
+  };
+  
+  (diagram.relationships || []).forEach((rel, idx) => {
+    const source = tableIdMap[rel.startTable];
+    const target = tableIdMap[rel.endTable];
+    if (!source || !target) return;
+    
+    const sourceCol = fieldIdMap[rel.startField];
+    const targetCol = fieldIdMap[rel.endField];
+    
+    edges.push({
+      id: `edge-${rel.id || idx + 1}`,
+      source,
+      target,
+      data: {
+        name: `rel_${rel.id || idx + 1}`,
+        cardinality: CARDINALITY_REVERSE_MAP[rel.cardinality] || 'Many to One',
+        compositeKeys: sourceCol && targetCol ? [{ foreign: sourceCol, primary: targetCol }] : [],
+      }
+    });
+  });
+  
+  return { tables, nodes, edges };
+}
