@@ -1,20 +1,87 @@
-export default function Navbar({ onSubmit, onReset, submitting = false, submitError = null }) {
+import { useState, useRef, useEffect } from 'react';
+
+export default function Navbar({ onSubmit, onReset, submitting = false, submitError = null, user = null, onLogout, onBack }) {
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const getInitials = () => {
+    if (!user || !user.full_name) return '??';
+    const parts = user.full_name.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
   return (
     <header className="h-14 min-h-[56px] bg-neutral-0 border-b border-neutral-300 flex justify-between items-center px-6 box-border z-10">
       <div className="flex items-center gap-4">
-        <button className="flex items-center gap-2 bg-transparent border-none text-neutral-900 font-sans text-[14px] font-bold cursor-pointer py-2 transition-opacity duration-200 hover:opacity-80">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="13" y1="8" x2="3" y2="8"></line>
-            <polyline points="7 12 3 8 7 4"></polyline>
-          </svg>
-          <span>Back</span>
-        </button>
-        <div className="w-[1px] h-5 bg-neutral-300"></div>
+        {onBack && (
+          <>
+            <button 
+              onClick={onBack}
+              className="flex items-center gap-2 bg-transparent border-none text-neutral-900 font-sans text-[14px] font-bold cursor-pointer py-2 transition-opacity duration-200 hover:opacity-80"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="13" y1="8" x2="3" y2="8"></line>
+                <polyline points="7 12 3 8 7 4"></polyline>
+              </svg>
+              <span>Back</span>
+            </button>
+            <div className="w-[1px] h-5 bg-neutral-300"></div>
+          </>
+        )}
         <span className="font-sans text-[15px] font-bold text-neutral-900">ER Diagram Question</span>
       </div>
       
       <div className="flex items-center gap-4">
-        <div className="w-9 h-9 rounded-full bg-[#6c4c23] text-neutral-0 flex items-center justify-center font-sans text-[12px] font-bold cursor-pointer transition-transform duration-200 hover:scale-105" title="User Profile">DP</div>
+        {/* User Profile Widget */}
+        <div className="relative" ref={profileRef}>
+          <div
+            className="w-9 h-9 rounded-full bg-brand-500 text-neutral-0 flex items-center justify-center font-sans text-[12px] font-bold cursor-pointer transition-all duration-200 hover:scale-105 hover:bg-brand-600 shadow-sm"
+            title="User Profile"
+            onClick={() => setShowProfileMenu((v) => !v)}
+          >
+            {getInitials()}
+          </div>
+          
+          {showProfileMenu && (
+            <div className="absolute right-0 mt-2 w-56 bg-neutral-0 border border-neutral-300 rounded-xl shadow-xl py-2 z-50 animate-fadeIn">
+              {user && (
+                <div className="px-4 py-2.5 border-b border-neutral-200">
+                  <p className="text-[13px] font-bold text-neutral-950 truncate m-0">{user.full_name}</p>
+                  <p className="text-[11px] text-neutral-500 truncate m-0 mt-0.5">{user.email}</p>
+                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-brand-50 text-[10px] text-brand-700 font-bold tracking-wide uppercase">
+                    {user.role}
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  onLogout();
+                }}
+                className="w-full text-left px-4 py-2 text-[12px] font-semibold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2 border-none bg-transparent cursor-pointer"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
         
         <button className="w-9 h-9 rounded-lg border border-neutral-300 bg-neutral-0 text-neutral-700 flex items-center justify-center cursor-pointer shadow-xs transition-all duration-200 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 focus-visible:outline-none focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-100" title="Bookmark">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
