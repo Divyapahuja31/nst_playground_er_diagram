@@ -72,7 +72,8 @@ export default function Navbar({
         {/* Reset Canvas Button */}
         <button
           className="w-9 h-9 rounded-lg border border-neutral-300 bg-neutral-0 text-neutral-700 flex items-center justify-center cursor-pointer shadow-xs transition-all duration-200 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 focus-visible:outline-none"
-          title="Reset Canvas"
+          title="Reset"
+
           onClick={onReset}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -208,8 +209,9 @@ export default function Navbar({
                   Submitting…
                 </>
               ) : (
-                '🚀 Submit'
+                '🚀 Submit Solution'
               )}
+
             </button>
           </>
         )}

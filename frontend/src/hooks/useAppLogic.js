@@ -208,10 +208,10 @@ export default function useAppLogic() {
 
     try {
       const diagram = serializeDiagram(tables, edges);
-      // Automatically save workspace diagram to PostgreSQL
-      await saveWorkspace(questionId, diagram);
+      // Automatically save workspace diagram to PostgreSQL (safe fallback)
+      await saveWorkspace(questionId, diagram).catch((err) => console.warn("Save workspace before submit skipped:", err));
 
-      // Submit solution for validation against DB persisted diagrams
+      // Submit solution for validation
       const result = await submitSolution(questionId);
       setValidationResult(result);
     } catch (err) {
@@ -219,6 +219,7 @@ export default function useAppLogic() {
     } finally {
       setSubmitting(false);
     }
+
   };
 
   const handleReset = () => {
