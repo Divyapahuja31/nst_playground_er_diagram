@@ -3,8 +3,14 @@ name: Cypress E2E & Component Tests
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/cypress.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/cypress.yml'
 
 jobs:
   e2e-tests:
