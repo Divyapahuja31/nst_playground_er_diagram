@@ -3,7 +3,7 @@ import time
 import uuid
 from sqlalchemy import func
 from app.db.db import SessionLocal
-from app.db.models import User, Question, Workspace, Submission, UserRole, Difficulty
+from app.db.models import User, Question, Playground, Submission, UserRole, Difficulty
 from app.validator.core import validate
 
 
@@ -52,15 +52,15 @@ def get_question(question_id):
         if not q:
             return None
 
-        sol_ws = (
-            db.query(Workspace)
+        sol_pg = (
+            db.query(Playground)
             .filter(
-                Workspace.question_id == q.id,
-                Workspace.is_solution.is_(True),
+                Playground.question_id == q.id,
+                Playground.is_solution.is_(True),
             )
             .first()
         )
-        solution = sol_ws.diagram_json if sol_ws else {}
+        solution = sol_pg.diagram_json if sol_pg else {}
         if isinstance(solution, str):
             solution = json.loads(solution)
 
@@ -108,7 +108,7 @@ def create_question(title: str, question: str, solution, created_by_id=None, rev
         db.refresh(q)
 
         if created_by_id:
-            ws = Workspace(
+            pg = Playground(
                 id=uuid.uuid4(),
                 name=f"{title} Solution",
                 owner_id=created_by_id,
@@ -116,7 +116,7 @@ def create_question(title: str, question: str, solution, created_by_id=None, rev
                 is_solution=True,
                 diagram_json=solution,
             )
-            db.add(ws)
+            db.add(pg)
             db.commit()
 
         return str(q.id)
@@ -178,20 +178,20 @@ def update_question(question_id: str, title: str = None, question: str = None, s
                     q.owner_id = owner.id
 
         if solution is not None:
-            sol_ws = (
-                db.query(Workspace)
+            sol_pg = (
+                db.query(Playground)
                 .filter(
-                    Workspace.question_id == q.id,
-                    Workspace.is_solution.is_(True),
+                    Playground.question_id == q.id,
+                    Playground.is_solution.is_(True),
                 )
                 .first()
             )
-            if sol_ws:
-                sol_ws.diagram_json = solution
+            if sol_pg:
+                sol_pg.diagram_json = solution
             else:
                 teacher_id = q.created_by
                 if teacher_id:
-                    ws = Workspace(
+                    pg = Playground(
                         id=uuid.uuid4(),
                         name=f"{q.title} Solution",
                         owner_id=teacher_id,
@@ -199,7 +199,7 @@ def update_question(question_id: str, title: str = None, question: str = None, s
                         is_solution=True,
                         diagram_json=solution,
                     )
-                    db.add(ws)
+                    db.add(pg)
 
         db.commit()
         return True
@@ -208,10 +208,10 @@ def update_question(question_id: str, title: str = None, question: str = None, s
 
 
 # ══════════════════════════════════════════
-#  Workspace Persistent Operations
+#  Playground Persistent Operations
 # ══════════════════════════════════════════
 
-def get_or_create_user_workspace(question_id: str, user: User):
+def get_or_create_user_playground(question_id: str, user: User):
     db = SessionLocal()
     try:
         try:
@@ -228,13 +228,13 @@ def get_or_create_user_workspace(question_id: str, user: User):
         )
 
         if is_teacher:
-            ws = (
-                db.query(Workspace)
-                .filter(Workspace.question_id == q.id, Workspace.is_solution.is_(True))
+            pg = (
+                db.query(Playground)
+                .filter(Playground.question_id == q.id, Playground.is_solution.is_(True))
                 .first()
             )
-            if not ws:
-                ws = Workspace(
+            if not pg:
+                pg = Playground(
                     id=uuid.uuid4(),
                     name=f"{q.title} Solution",
                     owner_id=user.id,
@@ -242,49 +242,49 @@ def get_or_create_user_workspace(question_id: str, user: User):
                     is_solution=True,
                     diagram_json={},
                 )
-                db.add(ws)
+                db.add(pg)
                 db.commit()
-                db.refresh(ws)
+                db.refresh(pg)
         else:
-            ws = (
-                db.query(Workspace)
+            pg = (
+                db.query(Playground)
                 .filter(
-                    Workspace.question_id == q.id,
-                    Workspace.owner_id == user.id,
-                    Workspace.is_solution.is_(False),
+                    Playground.question_id == q.id,
+                    Playground.owner_id == user.id,
+                    Playground.is_solution.is_(False),
                 )
                 .first()
             )
-            if not ws:
-                ws = Workspace(
+            if not pg:
+                pg = Playground(
                     id=uuid.uuid4(),
-                    name=f"{q.title} Workspace",
+                    name=f"{q.title} Playground",
                     owner_id=user.id,
                     question_id=q.id,
                     is_solution=False,
                     diagram_json={},
                 )
-                db.add(ws)
+                db.add(pg)
                 db.commit()
-                db.refresh(ws)
+                db.refresh(pg)
 
-        ws.last_opened_at = func.now()
+        pg.last_opened_at = func.now()
         db.commit()
 
         return {
-            "id": str(ws.id),
-            "name": ws.name,
-            "question_id": str(ws.question_id),
-            "owner_id": str(ws.owner_id),
-            "is_solution": bool(ws.is_solution),
-            "diagram_json": ws.diagram_json if ws.diagram_json is not None else {},
-            "updated_at": ws.updated_at.timestamp() if ws.updated_at else time.time(),
+            "id": str(pg.id),
+            "name": pg.name,
+            "question_id": str(pg.question_id),
+            "owner_id": str(pg.owner_id),
+            "is_solution": bool(pg.is_solution),
+            "diagram_json": pg.diagram_json if pg.diagram_json is not None else {},
+            "updated_at": pg.updated_at.timestamp() if pg.updated_at else time.time(),
         }
     finally:
         db.close()
 
 
-def save_user_workspace(question_id: str, user: User, diagram_json: dict):
+def save_user_playground(question_id: str, user: User, diagram_json: dict):
     db = SessionLocal()
     try:
         try:
@@ -301,52 +301,52 @@ def save_user_workspace(question_id: str, user: User, diagram_json: dict):
         )
 
         if is_teacher:
-            ws = (
-                db.query(Workspace)
-                .filter(Workspace.question_id == q.id, Workspace.is_solution.is_(True))
+            pg = (
+                db.query(Playground)
+                .filter(Playground.question_id == q.id, Playground.is_solution.is_(True))
                 .first()
             )
         else:
-            ws = (
-                db.query(Workspace)
+            pg = (
+                db.query(Playground)
                 .filter(
-                    Workspace.question_id == q.id,
-                    Workspace.owner_id == user.id,
-                    Workspace.is_solution.is_(False),
+                    Playground.question_id == q.id,
+                    Playground.owner_id == user.id,
+                    Playground.is_solution.is_(False),
                 )
                 .first()
             )
 
-        if not ws:
-            ws = Workspace(
+        if not pg:
+            pg = Playground(
                 id=uuid.uuid4(),
-                name=f"{q.title} {'Solution' if is_teacher else 'Workspace'}",
+                name=f"{q.title} {'Solution' if is_teacher else 'Playground'}",
                 owner_id=user.id,
                 question_id=q.id,
                 is_solution=is_teacher,
                 diagram_json=diagram_json,
             )
-            db.add(ws)
+            db.add(pg)
         else:
-            ws.diagram_json = diagram_json
+            pg.diagram_json = diagram_json
 
-        ws.last_opened_at = func.now()
+        pg.last_opened_at = func.now()
         db.commit()
-        db.refresh(ws)
+        db.refresh(pg)
 
         return {
-            "id": str(ws.id),
-            "question_id": str(ws.question_id),
-            "owner_id": str(ws.owner_id),
-            "is_solution": bool(ws.is_solution),
-            "diagram_json": ws.diagram_json,
-            "updated_at": ws.updated_at.timestamp() if ws.updated_at else time.time(),
+            "id": str(pg.id),
+            "question_id": str(pg.question_id),
+            "owner_id": str(pg.owner_id),
+            "is_solution": bool(pg.is_solution),
+            "diagram_json": pg.diagram_json,
+            "updated_at": pg.updated_at.timestamp() if pg.updated_at else time.time(),
         }
     finally:
         db.close()
 
 
-def submit_user_workspace(question_id: str, user: User, algorithm: str = None):
+def submit_user_playground(question_id: str, user: User, algorithm: str = None):
     db = SessionLocal()
     try:
         try:
@@ -358,30 +358,30 @@ def submit_user_workspace(question_id: str, user: User, algorithm: str = None):
         if not q:
             return None, "Question not found"
 
-        # 1. Load teacher's solution workspace
-        sol_ws = (
-            db.query(Workspace)
-            .filter(Workspace.question_id == q.id, Workspace.is_solution.is_(True))
+        # 1. Load teacher's solution playground
+        sol_pg = (
+            db.query(Playground)
+            .filter(Playground.question_id == q.id, Playground.is_solution.is_(True))
             .first()
         )
-        if not sol_ws or not sol_ws.diagram_json:
+        if not sol_pg or not sol_pg.diagram_json:
             return None, "No teacher solution diagram found for this question"
 
-        # 2. Load student's saved workspace
-        stu_ws = (
-            db.query(Workspace)
+        # 2. Load student's saved playground
+        stu_pg = (
+            db.query(Playground)
             .filter(
-                Workspace.question_id == q.id,
-                Workspace.owner_id == user.id,
-                Workspace.is_solution.is_(False),
+                Playground.question_id == q.id,
+                Playground.owner_id == user.id,
+                Playground.is_solution.is_(False),
             )
             .first()
         )
-        if not stu_ws or not stu_ws.diagram_json:
-            return None, "No saved student workspace diagram found for this question. Save your diagram before submitting."
+        if not stu_pg or not stu_pg.diagram_json:
+            return None, "No saved student playground diagram found for this question. Save your diagram before submitting."
 
         # 3. Run validation against saved diagrams
-        validation_result = validate(sol_ws.diagram_json, stu_ws.diagram_json, algorithm)
+        validation_result = validate(sol_pg.diagram_json, stu_pg.diagram_json, algorithm)
 
         # 4. Upsert single submission record for (student_id, question_id)
         names_score = validation_result.get("names", {}).get("score", 0)
@@ -398,13 +398,13 @@ def submit_user_workspace(question_id: str, user: User, algorithm: str = None):
                 id=uuid.uuid4(),
                 student_id=user.id,
                 question_id=q.id,
-                workspace_id=stu_ws.id,
+                playground_id=stu_pg.id,
                 score=score,
                 feedback_json=validation_result,
             )
             db.add(sub)
         else:
-            sub.workspace_id = stu_ws.id
+            sub.playground_id = stu_pg.id
             sub.score = score
             sub.feedback_json = validation_result
             sub.submitted_at = func.now()
@@ -415,7 +415,7 @@ def submit_user_workspace(question_id: str, user: User, algorithm: str = None):
         db.close()
 
 
-def get_question_solution_workspace(question_id: str):
+def get_question_solution_playground(question_id: str):
     db = SessionLocal()
     try:
         try:
@@ -427,24 +427,26 @@ def get_question_solution_workspace(question_id: str):
         if not q:
             return None
 
-        sol_ws = (
-            db.query(Workspace)
+        sol_pg = (
+            db.query(Playground)
             .filter(
-                Workspace.question_id == q.id,
-                Workspace.is_solution.is_(True),
+                Playground.question_id == q.id,
+                Playground.is_solution.is_(True),
             )
             .first()
         )
-        if not sol_ws:
+        if not sol_pg:
             return None
 
         return {
-            "id": str(sol_ws.id),
-            "question_id": str(sol_ws.question_id),
-            "owner_id": str(sol_ws.owner_id),
+            "id": str(sol_pg.id),
+            "question_id": str(sol_pg.question_id),
+            "owner_id": str(sol_pg.owner_id),
             "is_solution": True,
-            "diagram_json": sol_ws.diagram_json or {},
+            "diagram_json": sol_pg.diagram_json or {},
         }
     finally:
         db.close()
+
+
 

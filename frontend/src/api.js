@@ -28,10 +28,10 @@ export async function fetchQuestion(id, includeSolution = false) {
 }
 
 export async function fetchWorkspace(questionId) {
-  const res = await fetch(`${API_BASE}/questions/${questionId}/workspace`, {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/playground`, {
     headers: getHeaders(),
   });
-  if (!res.ok) throw new Error(`Failed to fetch workspace for question ${questionId}: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to fetch playground for question ${questionId}: ${res.status}`);
   return res.json();
 }
 
@@ -46,16 +46,15 @@ export async function fetchOfficialSolution(questionId) {
   return res.json();
 }
 
-
 export async function saveWorkspace(questionId, diagramJson) {
-  const res = await fetch(`${API_BASE}/questions/${questionId}/workspace`, {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/playground`, {
     method: 'PUT',
     headers: getHeaders(),
     body: JSON.stringify({ diagram_json: diagramJson }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Failed to save workspace: ${res.status}`);
+    throw new Error(body.detail || `Failed to save playground: ${res.status}`);
   }
   return res.json();
 }
@@ -73,7 +72,6 @@ export async function submitSolution(questionId, studentDiagram) {
   }
   return res.json();
 }
-
 
 export async function loginUser(email, password) {
   const res = await fetch(`${API_BASE}/auth/login`, {
