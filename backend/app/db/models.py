@@ -5,7 +5,7 @@ Tables
 ------
   User        — platform users (students, teachers, admins)
   Question    — problem statements created by teachers
-  Workspace   — ER diagram workspaces (official solution or student assignment)
+  Playground  — ER diagram playgrounds (official solution or student assignment)
   Submission  — single latest submission per student per question
 """
 
@@ -77,7 +77,7 @@ class User(Base):
 
     # ── Relationships ────────────────────
     questions   = relationship("Question",   back_populates="creator", foreign_keys="Question.created_by")
-    workspaces  = relationship("Workspace",  back_populates="owner",   foreign_keys="Workspace.owner_id")
+    playgrounds = relationship("Playground", back_populates="owner",   foreign_keys="Playground.owner_id")
     submissions = relationship("Submission", back_populates="student", foreign_keys="Submission.student_id")
 
     __table_args__ = (
@@ -135,7 +135,7 @@ class Question(Base):
     creator     = relationship("User",       back_populates="questions", foreign_keys=[created_by])
     reviewer    = relationship("User",       foreign_keys=[reviewer_id])
     owner       = relationship("User",       foreign_keys=[owner_id])
-    workspaces  = relationship("Workspace",  back_populates="question",  cascade="all, delete-orphan")
+    playgrounds = relationship("Playground", back_populates="question",  cascade="all, delete-orphan")
     submissions = relationship("Submission", back_populates="question",  cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
@@ -143,20 +143,20 @@ class Question(Base):
 
 
 # ══════════════════════════════════════════
-#  Workspace
+#  Playground
 # ══════════════════════════════════════════
 
-class Workspace(Base):
+class Playground(Base):
     """
-    Represents an ER diagram workspace.
-    Every workspace belongs to exactly one question and one owner.
+    Represents an ER diagram playground.
+    Every playground belongs to exactly one question and one owner.
 
     Owner types:
-    - Teacher: is_solution = True (official solution workspace)
-    - Student: is_solution = False (assignment workspace)
+    - Teacher: is_solution = True (official solution playground)
+    - Student: is_solution = False (assignment playground)
     """
 
-    __tablename__ = "workspaces"
+    __tablename__ = "playgrounds"
 
     id             = Column(
         UUID(as_uuid=True),
@@ -182,24 +182,24 @@ class Workspace(Base):
     updated_at     = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     # ── Relationships ────────────────────
-    owner       = relationship("User",       back_populates="workspaces",  foreign_keys=[owner_id])
-    question    = relationship("Question",   back_populates="workspaces")
-    submissions = relationship("Submission", back_populates="workspace")
+    owner       = relationship("User",       back_populates="playgrounds", foreign_keys=[owner_id])
+    question    = relationship("Question",   back_populates="playgrounds")
+    submissions = relationship("Submission", back_populates="playground")
 
     __table_args__ = (
-        Index("ix_workspaces_owner_id",    "owner_id"),
-        Index("ix_workspaces_question_id", "question_id"),
-        Index("ix_workspaces_is_solution", "is_solution"),
-        # Enforce exactly ONE solution workspace per question
+        Index("ix_playgrounds_owner_id",    "owner_id"),
+        Index("ix_playgrounds_question_id", "question_id"),
+        Index("ix_playgrounds_is_solution", "is_solution"),
+        # Enforce exactly ONE solution playground per question
         Index(
-            "uq_question_solution_workspace",
+            "uq_question_solution_playground",
             "question_id",
             unique=True,
             postgresql_where=text("is_solution = true"),
         ),
-        # Enforce max ONE student workspace per student per question
+        # Enforce max ONE student playground per student per question
         Index(
-            "uq_student_question_workspace",
+            "uq_student_question_playground",
             "question_id",
             "owner_id",
             unique=True,
@@ -208,7 +208,7 @@ class Workspace(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Workspace id={self.id} is_solution={self.is_solution} owner_id={self.owner_id}>"
+        return f"<Playground id={self.id} is_solution={self.is_solution} owner_id={self.owner_id}>"
 
 
 # ══════════════════════════════════════════
@@ -239,9 +239,9 @@ class Submission(Base):
         ForeignKey("questions.id", ondelete="CASCADE"),
         nullable=False,
     )
-    workspace_id  = Column(
+    playground_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("workspaces.id", ondelete="SET NULL"),
+        ForeignKey("playgrounds.id", ondelete="SET NULL"),
         nullable=True,
     )
     score         = Column(Float, nullable=True)          # 0-100 score
@@ -249,14 +249,14 @@ class Submission(Base):
     submitted_at  = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # ── Relationships ────────────────────
-    student   = relationship("User",      back_populates="submissions", foreign_keys=[student_id])
-    question  = relationship("Question",  back_populates="submissions")
-    workspace = relationship("Workspace", back_populates="submissions")
+    student    = relationship("User",       back_populates="submissions", foreign_keys=[student_id])
+    question   = relationship("Question",   back_populates="submissions")
+    playground = relationship("Playground", back_populates="submissions")
 
     __table_args__ = (
-        Index("ix_submissions_student_id",   "student_id"),
-        Index("ix_submissions_question_id",  "question_id"),
-        Index("ix_submissions_workspace_id", "workspace_id"),
+        Index("ix_submissions_student_id",    "student_id"),
+        Index("ix_submissions_question_id",   "question_id"),
+        Index("ix_submissions_playground_id", "playground_id"),
         # Enforce ONE submission per student per question
         UniqueConstraint("student_id", "question_id", name="uq_submission_student_question"),
     )
