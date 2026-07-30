@@ -148,19 +148,78 @@ def questions_update(question_id: str, payload: dict = Body(...), current_user: 
         raise HTTPException(404, f'no question with id {question_id}')
     return {'ok': True}
 
-@app.post('/questions/{question_id}/submit')
-def questions_submit(question_id: str, payload: dict = Body(...), current_user: User = Depends(get_current_user)):
+@app.get('/questions/{question_id}/workspace')
+def questions_get_workspace(question_id: str, current_user: User = Depends(get_current_user)):
     question = store.get_question(question_id)
     if question is None:
         raise HTTPException(404, f'no question with id {question_id}')
-    student = payload.get('student')
-    if student is None:
-        raise HTTPException(422, 'body must contain a "student" diagram object')
+
+    if current_user.role == UserRole.STUDENT and not question.get('is_published'):
+        raise HTTPException(403, 'This question is not published.')
+
+    ws = store.get_or_create_user_workspace(question_id, current_user)
+    if not ws:
+        raise HTTPException(404, f'failed to load workspace for question {question_id}')
+    return ws
+
+
+@app.put('/questions/{question_id}/workspace')
+def questions_save_workspace(question_id: str, payload: dict = Body(...), current_user: User = Depends(get_current_user)):
+    question = store.get_question(question_id)
+    if question is None:
+        raise HTTPException(404, f'no question with id {question_id}')
+
+    if current_user.role == UserRole.STUDENT and not question.get('is_published'):
+        raise HTTPException(403, 'This question is not published.')
+
+    diagram_json = payload.get('diagram_json') if isinstance(payload, dict) and 'diagram_json' in payload else payload
+
+    ws = store.save_user_workspace(question_id, current_user, diagram_json)
+    if not ws:
+        raise HTTPException(404, f'failed to save workspace for question {question_id}')
+    return {"ok": True, "workspace": ws}
+
+
+@app.get('/questions/{question_id}/solution')
+def questions_get_solution(question_id: str, current_user: User = Depends(get_current_user)):
+    question = store.get_question(question_id)
+    if question is None:
+        raise HTTPException(404, f'no question with id {question_id}')
+
+    if current_user.role == UserRole.STUDENT:
+        raise HTTPException(403, 'Students are not allowed to reveal official reference solutions.')
+
+    solution_ws = store.get_question_solution_workspace(question_id)
+    if not solution_ws:
+        raise HTTPException(404, f'No official solution found for question {question_id}')
+
+    return {"solution": solution_ws.get("diagram_json") or {}}
+
+
+@app.post('/questions/{question_id}/submit')
+def questions_submit(question_id: str, payload: dict = Body({}), current_user: User = Depends(get_current_user)):
+    question = store.get_question(question_id)
+    if question is None:
+        raise HTTPException(404, f'no question with id {question_id}')
+
+    if current_user.role == UserRole.STUDENT and not question.get('is_published'):
+        raise HTTPException(403, 'This question is not published.')
+
+    if isinstance(payload, dict) and payload.get('student') is not None:
+        store.save_user_workspace(question_id, current_user, payload.get('student'))
+
+    algorithm = payload.get('algorithm') if isinstance(payload, dict) else None
+
     try:
-        return validate(question['solution'], student, payload.get('algorithm'))
+        result, error_msg = store.submit_user_workspace(question_id, current_user, algorithm)
+        if error_msg:
+            raise HTTPException(400, error_msg)
+        return result
     except (SchemaError, KeyError, TypeError) as e:
         raise HTTPException(422, f'malformed diagram: {e!r}')
     except ValueError as e:
         raise HTTPException(422, str(e))
     except EngineError as e:
         raise HTTPException(500, str(e))
+
+

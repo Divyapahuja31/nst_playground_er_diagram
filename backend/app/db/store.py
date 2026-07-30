@@ -1,8 +1,10 @@
 import json
 import time
 import uuid
+from sqlalchemy import func
 from app.db.db import SessionLocal
-from app.db.models import User, Question, Workspace, Difficulty
+from app.db.models import User, Question, Workspace, Submission, UserRole, Difficulty
+from app.validator.core import validate
 
 
 def init_db():
@@ -203,3 +205,246 @@ def update_question(question_id: str, title: str = None, question: str = None, s
         return True
     finally:
         db.close()
+
+
+# ══════════════════════════════════════════
+#  Workspace Persistent Operations
+# ══════════════════════════════════════════
+
+def get_or_create_user_workspace(question_id: str, user: User):
+    db = SessionLocal()
+    try:
+        try:
+            q_uuid = uuid.UUID(str(question_id))
+            q = db.query(Question).filter(Question.id == q_uuid).first()
+        except ValueError:
+            q = None
+
+        if not q:
+            return None
+
+        is_teacher = user.role in (UserRole.TEACHER, UserRole.ADMIN) and (
+            str(user.id) == str(q.created_by) or str(user.id) == str(q.owner_id) or user.role == UserRole.ADMIN
+        )
+
+        if is_teacher:
+            ws = (
+                db.query(Workspace)
+                .filter(Workspace.question_id == q.id, Workspace.is_solution.is_(True))
+                .first()
+            )
+            if not ws:
+                ws = Workspace(
+                    id=uuid.uuid4(),
+                    name=f"{q.title} Solution",
+                    owner_id=user.id,
+                    question_id=q.id,
+                    is_solution=True,
+                    diagram_json={},
+                )
+                db.add(ws)
+                db.commit()
+                db.refresh(ws)
+        else:
+            ws = (
+                db.query(Workspace)
+                .filter(
+                    Workspace.question_id == q.id,
+                    Workspace.owner_id == user.id,
+                    Workspace.is_solution.is_(False),
+                )
+                .first()
+            )
+            if not ws:
+                ws = Workspace(
+                    id=uuid.uuid4(),
+                    name=f"{q.title} Workspace",
+                    owner_id=user.id,
+                    question_id=q.id,
+                    is_solution=False,
+                    diagram_json={},
+                )
+                db.add(ws)
+                db.commit()
+                db.refresh(ws)
+
+        ws.last_opened_at = func.now()
+        db.commit()
+
+        return {
+            "id": str(ws.id),
+            "name": ws.name,
+            "question_id": str(ws.question_id),
+            "owner_id": str(ws.owner_id),
+            "is_solution": bool(ws.is_solution),
+            "diagram_json": ws.diagram_json if ws.diagram_json is not None else {},
+            "updated_at": ws.updated_at.timestamp() if ws.updated_at else time.time(),
+        }
+    finally:
+        db.close()
+
+
+def save_user_workspace(question_id: str, user: User, diagram_json: dict):
+    db = SessionLocal()
+    try:
+        try:
+            q_uuid = uuid.UUID(str(question_id))
+            q = db.query(Question).filter(Question.id == q_uuid).first()
+        except ValueError:
+            q = None
+
+        if not q:
+            return None
+
+        is_teacher = user.role in (UserRole.TEACHER, UserRole.ADMIN) and (
+            str(user.id) == str(q.created_by) or str(user.id) == str(q.owner_id) or user.role == UserRole.ADMIN
+        )
+
+        if is_teacher:
+            ws = (
+                db.query(Workspace)
+                .filter(Workspace.question_id == q.id, Workspace.is_solution.is_(True))
+                .first()
+            )
+        else:
+            ws = (
+                db.query(Workspace)
+                .filter(
+                    Workspace.question_id == q.id,
+                    Workspace.owner_id == user.id,
+                    Workspace.is_solution.is_(False),
+                )
+                .first()
+            )
+
+        if not ws:
+            ws = Workspace(
+                id=uuid.uuid4(),
+                name=f"{q.title} {'Solution' if is_teacher else 'Workspace'}",
+                owner_id=user.id,
+                question_id=q.id,
+                is_solution=is_teacher,
+                diagram_json=diagram_json,
+            )
+            db.add(ws)
+        else:
+            ws.diagram_json = diagram_json
+
+        ws.last_opened_at = func.now()
+        db.commit()
+        db.refresh(ws)
+
+        return {
+            "id": str(ws.id),
+            "question_id": str(ws.question_id),
+            "owner_id": str(ws.owner_id),
+            "is_solution": bool(ws.is_solution),
+            "diagram_json": ws.diagram_json,
+            "updated_at": ws.updated_at.timestamp() if ws.updated_at else time.time(),
+        }
+    finally:
+        db.close()
+
+
+def submit_user_workspace(question_id: str, user: User, algorithm: str = None):
+    db = SessionLocal()
+    try:
+        try:
+            q_uuid = uuid.UUID(str(question_id))
+            q = db.query(Question).filter(Question.id == q_uuid).first()
+        except ValueError:
+            q = None
+
+        if not q:
+            return None, "Question not found"
+
+        # 1. Load teacher's solution workspace
+        sol_ws = (
+            db.query(Workspace)
+            .filter(Workspace.question_id == q.id, Workspace.is_solution.is_(True))
+            .first()
+        )
+        if not sol_ws or not sol_ws.diagram_json:
+            return None, "No teacher solution diagram found for this question"
+
+        # 2. Load student's saved workspace
+        stu_ws = (
+            db.query(Workspace)
+            .filter(
+                Workspace.question_id == q.id,
+                Workspace.owner_id == user.id,
+                Workspace.is_solution.is_(False),
+            )
+            .first()
+        )
+        if not stu_ws or not stu_ws.diagram_json:
+            return None, "No saved student workspace diagram found for this question. Save your diagram before submitting."
+
+        # 3. Run validation against saved diagrams
+        validation_result = validate(sol_ws.diagram_json, stu_ws.diagram_json, algorithm)
+
+        # 4. Upsert single submission record for (student_id, question_id)
+        names_score = validation_result.get("names", {}).get("score", 0)
+        is_valid = validation_result.get("is_valid", False)
+        score = 100.0 if is_valid else float(names_score)
+
+        sub = (
+            db.query(Submission)
+            .filter(Submission.student_id == user.id, Submission.question_id == q.id)
+            .first()
+        )
+        if not sub:
+            sub = Submission(
+                id=uuid.uuid4(),
+                student_id=user.id,
+                question_id=q.id,
+                workspace_id=stu_ws.id,
+                score=score,
+                feedback_json=validation_result,
+            )
+            db.add(sub)
+        else:
+            sub.workspace_id = stu_ws.id
+            sub.score = score
+            sub.feedback_json = validation_result
+            sub.submitted_at = func.now()
+
+        db.commit()
+        return validation_result, None
+    finally:
+        db.close()
+
+
+def get_question_solution_workspace(question_id: str):
+    db = SessionLocal()
+    try:
+        try:
+            q_uuid = uuid.UUID(str(question_id))
+            q = db.query(Question).filter(Question.id == q_uuid).first()
+        except ValueError:
+            q = None
+
+        if not q:
+            return None
+
+        sol_ws = (
+            db.query(Workspace)
+            .filter(
+                Workspace.question_id == q.id,
+                Workspace.is_solution.is_(True),
+            )
+            .first()
+        )
+        if not sol_ws:
+            return None
+
+        return {
+            "id": str(sol_ws.id),
+            "question_id": str(sol_ws.question_id),
+            "owner_id": str(sol_ws.owner_id),
+            "is_solution": True,
+            "diagram_json": sol_ws.diagram_json or {},
+        }
+    finally:
+        db.close()
+

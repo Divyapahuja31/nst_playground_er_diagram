@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
-import { submitSolution, loginUser, registerUser, fetchQuestion } from '../api';
+import { submitSolution, loginUser, registerUser, fetchQuestion, updateQuestion, fetchWorkspace, saveWorkspace, fetchOfficialSolution } from '../api';
 import { serializeDiagram, deserializeDiagram } from '../diagramSerializer';
 
 const initialNodes = [];
@@ -23,9 +23,18 @@ export default function useAppLogic() {
   const [authError, setAuthError] = useState(null);
 
   const [questionId, setQuestionId] = useState(null);
+  const [question, setQuestion] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
+  const [loadingWorkspace, setLoadingWorkspace] = useState(false);
+  const [loadingSolution, setLoadingSolution] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+
+  const [solutionModalOpen, setSolutionModalOpen] = useState(false);
+  const [solutionDiagram, setSolutionDiagram] = useState(null);
 
   const onConnect = useCallback(
     (params) => {
@@ -92,13 +101,94 @@ export default function useAppLogic() {
     setNodes((prev) => prev.filter((n) => n.id !== tableId));
   };
 
-  const handleQuestionLoaded = (id) => {
+  const handleQuestionLoaded = async (id) => {
     setQuestionId(id);
+    setValidationResult(null);
+    setSubmitError(null);
+    setSolutionModalOpen(false);
+    setSolutionDiagram(null);
+
     if (!id) {
+      setQuestion(null);
       setTables([]);
       setNodes([]);
       setEdges([]);
-      setValidationResult(null);
+      setLoadingWorkspace(false);
+      return;
+    }
+
+    setLoadingWorkspace(true);
+
+    try {
+      const qDetails = await fetchQuestion(id);
+      setQuestion(qDetails);
+    } catch (err) {
+      console.warn("Could not fetch question metadata:", err);
+    }
+
+    try {
+      const ws = await fetchWorkspace(id);
+      if (ws && ws.diagram_json && Object.keys(ws.diagram_json).length > 0) {
+        const { tables: loadedTables, nodes: loadedNodes, edges: loadedEdges } = deserializeDiagram(ws.diagram_json);
+        setTables(loadedTables);
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+      } else {
+        setTables([]);
+        setNodes([]);
+        setEdges([]);
+      }
+    } catch (err) {
+      console.warn("Could not load workspace for question:", err);
+      setTables([]);
+      setNodes([]);
+      setEdges([]);
+    } finally {
+      setLoadingWorkspace(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!questionId) return;
+    setSaving(true);
+    setSubmitError(null);
+    try {
+      const diagram = serializeDiagram(tables, edges);
+      await saveWorkspace(questionId, diagram);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      setSubmitError('Save failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublishToggle = async () => {
+    if (!question || !questionId) return;
+    setIsPublishing(true);
+    try {
+      const nextPublished = !question.is_published;
+      await updateQuestion(questionId, { is_published: nextPublished });
+      setQuestion((prev) => prev ? { ...prev, is_published: nextPublished } : null);
+    } catch (err) {
+      alert("Failed to toggle published state: " + err.message);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleRevealSolution = async () => {
+    if (!questionId) return;
+    setLoadingSolution(true);
+    try {
+      const res = await fetchOfficialSolution(questionId);
+      setSolutionDiagram(res.solution || {});
+      setSolutionModalOpen(true);
+    } catch (err) {
+      alert("Failed to reveal official solution: " + err.message);
+    } finally {
+      setLoadingSolution(false);
     }
   };
 
@@ -118,13 +208,18 @@ export default function useAppLogic() {
 
     try {
       const diagram = serializeDiagram(tables, edges);
-      const result = await submitSolution(questionId, diagram);
+      // Automatically save workspace diagram to PostgreSQL (safe fallback)
+      await saveWorkspace(questionId, diagram).catch((err) => console.warn("Save workspace before submit skipped:", err));
+
+      // Submit solution for validation
+      const result = await submitSolution(questionId);
       setValidationResult(result);
     } catch (err) {
       setSubmitError(err.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
+
   };
 
   const handleReset = () => {
@@ -173,22 +268,6 @@ export default function useAppLogic() {
     handleReset();
   };
 
-  const handleLoadSolution = async (qId) => {
-    try {
-      const q = await fetchQuestion(qId, true); // True request for solution
-      if (q && q.solution) {
-        const { tables: loadedTables, nodes: loadedNodes, edges: loadedEdges } = deserializeDiagram(q.solution);
-        setTables(loadedTables);
-        setNodes(loadedNodes);
-        setEdges(loadedEdges);
-      } else {
-        alert("This question does not have a reference solution diagram, or you do not have permission to view it.");
-      }
-    } catch (err) {
-      alert("Failed to load solution: " + err.message);
-    }
-  };
-
   if (typeof window !== 'undefined' && window.Cypress) {
     window.__testTables = tables;
     window.__testConnect = (params) => {
@@ -198,12 +277,13 @@ export default function useAppLogic() {
 
   return {
     nodes, edges, tables,
-    submitting, submitError, validationResult,
-    token, user, authError, questionId,
+    submitting, saving, saveSuccess, isPublishing, loadingWorkspace, loadingSolution, submitError, validationResult,
+    token, user, authError, questionId, question,
+    solutionModalOpen, setSolutionModalOpen, solutionDiagram,
     onNodesChange, onEdgesChange, onConnect,
     setEdges, setValidationResult,
     handleAddTable, handleUpdateTable, handleDeleteTable,
-    handleQuestionLoaded, handleSubmit, handleReset,
-    handleLogin, handleRegister, handleLogout, handleLoadSolution
+    handleQuestionLoaded, handleSave, handlePublishToggle, handleRevealSolution, handleSubmit, handleReset,
+    handleLogin, handleRegister, handleLogout
   };
 }

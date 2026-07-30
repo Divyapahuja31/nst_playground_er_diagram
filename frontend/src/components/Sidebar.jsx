@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { fetchQuestion, updateQuestion } from '../api';
+import { fetchQuestion } from '../api';
 
-export default function Sidebar({ user, selectedQuestionId, onLoadSolution, currentDiagram }) {
+export default function Sidebar({ user, selectedQuestionId }) {
   const [width, setWidth] = useState(420);
   const isResizing = useRef(false);
 
@@ -14,7 +14,7 @@ export default function Sidebar({ user, selectedQuestionId, onLoadSolution, curr
     async function loadDetail() {
       setLoading(true);
       try {
-        const details = await fetchQuestion(selectedQuestionId, true); // try include_solution if allowed
+        const details = await fetchQuestion(selectedQuestionId);
         setQuestionData(details);
       } catch (err) {
         console.error(err);
@@ -24,20 +24,6 @@ export default function Sidebar({ user, selectedQuestionId, onLoadSolution, curr
     }
     loadDetail();
   }, [selectedQuestionId]);
-
-  const handleSaveActiveSolution = async () => {
-    if (!questionData) return;
-    try {
-      await updateQuestion(questionData.id, {
-        title: questionData.title,
-        question: questionData.question,
-        solution: currentDiagram
-      });
-      alert('Reference solution saved successfully!');
-    } catch (err) {
-      alert(err.message);
-    }
-  };
 
   const startResizing = (e) => {
     isResizing.current = true;
@@ -63,18 +49,15 @@ export default function Sidebar({ user, selectedQuestionId, onLoadSolution, curr
     document.body.style.userSelect = '';
   };
 
-  const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
-
   return (
     <aside 
-      className="flex h-full min-h-full bg-neutral-50 border-r border-neutral-300 relative z-[5] box-border" 
+      className="flex h-full min-h-full bg-neutral-50 border-r border-neutral-300 relative z-[5] box-border font-sans" 
       style={{ width: `${width}px` }}
     >
-      {/* Main panel for content */}
       <div className="grow h-full bg-white relative flex flex-col overflow-hidden box-border">
         {loading ? (
           <div className="flex flex-col h-full w-full overflow-hidden items-center justify-center">
-            <span className="font-sans text-[14px] text-neutral-600">Loading details...</span>
+            <span className="font-sans text-[14px] text-neutral-600">Loading problem description...</span>
           </div>
         ) : (
           <div className="flex flex-col h-full w-full overflow-hidden">
@@ -83,52 +66,26 @@ export default function Sidebar({ user, selectedQuestionId, onLoadSolution, curr
             </header>
 
             <div className="grow overflow-y-auto overflow-x-hidden p-6 pb-10 box-border scrollbar-thin">
-              <h2 className="text-[26px] font-bold tracking-[-0.6px] text-neutral-950 mt-0 mb-3 font-sans leading-tight">{questionData?.title}</h2>
+              <h2 className="text-[24px] font-bold tracking-[-0.5px] text-neutral-950 mt-0 mb-3 font-sans leading-tight">
+                {questionData?.title}
+              </h2>
               
               <div className="flex items-center gap-3 mb-5 flex-wrap">
-                <span className="text-[12px] font-bold px-2 py-0.5 box-border bg-amber-50 text-amber-700 border border-amber-200 rounded-full">Medium</span>
-                {user?.role !== 'STUDENT' && (
+                <span className="text-[12px] font-bold px-2.5 py-0.5 box-border bg-amber-50 text-amber-800 border border-amber-200 rounded-full">
+                  Medium
+                </span>
+                {user?.role !== 'STUDENT' && questionData?.creator_email && (
                   <>
                     <span className="text-neutral-300 text-[12px]">▪</span>
-                    <span className="text-[12px] text-neutral-500">Creator: {questionData?.creator_email || 'Default Teacher'}</span>
+                    <span className="text-[12px] text-neutral-500 font-medium">Creator: {questionData.creator_email}</span>
                   </>
                 )}
+                {questionData?.is_published !== undefined && (
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${questionData.is_published ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-neutral-100 text-neutral-600 border border-neutral-300'}`}>
+                    {questionData.is_published ? 'Published' : 'Draft'}
+                  </span>
+                )}
               </div>
-
-              {/* Teacher reference solution tools */}
-              {(user?.role === 'TEACHER' || user?.role === 'ADMIN') && questionData && (
-                <div className="flex gap-2 flex-wrap bg-[#f8fafc] border border-neutral-200/60 p-3.5 rounded-xl mb-6 items-center">
-                  <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider block w-full mb-1">Teacher reference solution:</span>
-                  {String(user?.id).toLowerCase() !== String(questionData.reviewer_id || '').toLowerCase() ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => onLoadSolution(questionData.id)}
-                        className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors cursor-pointer border-none"
-                      >
-                        Load Solution to Canvas
-                      </button>
-                      
-                      {(String(user?.id).toLowerCase() === String(questionData.created_by || '').toLowerCase() || 
-                        String(user?.id).toLowerCase() === String(questionData.owner_id || '').toLowerCase() ||
-                        user?.role === 'ADMIN') && (
-                        <button
-                          type="button"
-                          onClick={handleSaveActiveSolution}
-                          className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors cursor-pointer border-none"
-                          title="Overwrite solution with current canvas layout"
-                        >
-                          Save Canvas as Solution
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-[11.5px] text-neutral-500 italic pl-1">
-                      Assigned Reviewer (Blind): Solution access restricted.
-                    </span>
-                  )}
-                </div>
-              )}
 
               <ReactMarkdown
                 components={{
@@ -137,29 +94,11 @@ export default function Sidebar({ user, selectedQuestionId, onLoadSolution, curr
                   h4: ({ children }) => <h4 className="text-[13px] font-bold text-neutral-900 mt-4 mb-2 font-sans uppercase tracking-wider">{children}</h4>,
                   ul: ({ children }) => <ul className="pl-0 my-2 list-none">{children}</ul>,
                   ol: ({ children }) => <ol className="pl-5 my-3">{children}</ol>,
-                  li: ({ children, ...props }) => {
-                    const hasSubList = Array.isArray(children) && children.some(child => child?.props?.node?.type === 'list');
-                    if (hasSubList) {
-                      return (
-                        <li className="list-none font-sans text-[14px] font-bold text-neutral-800 mt-4 mb-1.5 uppercase tracking-wider">
-                          {children}
-                        </li>
-                      );
-                    }
-                    const isNested = props.className?.includes('nested') || (props.node?.depth && props.node.depth > 1);
-                    if (isNested) {
-                      return (
-                        <li className="list-none ml-4 text-[13.5px] leading-relaxed text-neutral-700 font-medium mb-1.5 normal-case tracking-normal">
-                          {children}
-                        </li>
-                      );
-                    }
-                    return (
-                      <li className="list-disc text-[14px] leading-relaxed text-neutral-700 font-medium ml-4 mb-1.5">
-                        {children}
-                      </li>
-                    );
-                  },
+                  li: ({ children, ...props }) => (
+                    <li className="list-disc text-[14px] leading-relaxed text-neutral-700 font-medium ml-4 mb-1.5">
+                      {children}
+                    </li>
+                  ),
                   hr: () => <hr className="border-none border-t border-neutral-200 my-4" />,
                   code: ({ children }) => <code className="font-mono text-[12px] text-[#db2777] bg-transparent font-semibold inline">{children}</code>
                 }}
