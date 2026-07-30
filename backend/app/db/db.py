@@ -8,7 +8,12 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is missing. "
+        "Please create a .env file in backend/ containing your Neon connection string:\n"
+        "DATABASE_URL=postgresql://user:password@ep-xyz.neon.tech/neondb?sslmode=require"
+    )
 
 # Fix dialect prefix if standard postgresql:// URL is provided for Neon
 if DATABASE_URL.startswith("postgresql://"):

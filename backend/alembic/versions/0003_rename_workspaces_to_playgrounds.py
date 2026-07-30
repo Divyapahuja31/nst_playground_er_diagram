@@ -41,7 +41,7 @@ def upgrade() -> None:
         CREATE TRIGGER trg_playgrounds_updated_at
         BEFORE UPDATE ON playgrounds
         FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column();
+        EXECUTE FUNCTION set_updated_at();
     """)
 
 
