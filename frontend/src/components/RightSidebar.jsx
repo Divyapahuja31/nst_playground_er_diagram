@@ -57,6 +57,8 @@ export default function RightSidebar({ tables = [], edges = [], setEdges, onAddT
     setEdges(eds => eds.filter(e => e.id !== edgeId));
   };
 
+  const [expandedTableId, setExpandedTableId] = useState(null);
+
   const filteredTables = tables.filter((t) =>
     t.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -172,6 +174,8 @@ export default function RightSidebar({ tables = [], edges = [], setEdges, onAddT
               <TableListItem
                 key={table.id}
                 table={table}
+                expanded={expandedTableId === table.id}
+                onToggleExpand={() => setExpandedTableId(expandedTableId === table.id ? null : table.id)}
                 onUpdate={onUpdateTable}
                 onDelete={() => onDeleteTable(table.id)}
               />
