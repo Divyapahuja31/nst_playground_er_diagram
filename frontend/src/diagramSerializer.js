@@ -109,6 +109,13 @@ export function deserializeDiagram(diagram) {
     'many_to_many': 'Many to Many',
   };
   
+  const NOTATION_MAP = {
+    'One to One': '1 - 1',
+    'One to Many': '1 - N',
+    'Many to One': 'N - 1',
+    'Many to Many': 'M - N',
+  };
+
   (diagram.relationships || []).forEach((rel, idx) => {
     const source = tableIdMap[rel.startTable];
     const target = tableIdMap[rel.endTable];
@@ -116,14 +123,18 @@ export function deserializeDiagram(diagram) {
     
     const sourceCol = fieldIdMap[rel.startField];
     const targetCol = fieldIdMap[rel.endField];
+    const cardinality = CARDINALITY_REVERSE_MAP[rel.cardinality] || 'Many to One';
     
     edges.push({
       id: `edge-${rel.id || idx + 1}`,
       source,
       target,
+      label: NOTATION_MAP[cardinality] || '1 - 1',
+      labelStyle: { fill: '#334155', fontWeight: 600, fontSize: 10, fontFamily: 'sans-serif' },
+      labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9, stroke: '#cbd5e1', strokeWidth: 1, rx: 4, ry: 4 },
       data: {
         name: `rel_${rel.id || idx + 1}`,
-        cardinality: CARDINALITY_REVERSE_MAP[rel.cardinality] || 'Many to One',
+        cardinality,
         compositeKeys: sourceCol && targetCol ? [{ foreign: sourceCol, primary: targetCol }] : [],
       }
     });

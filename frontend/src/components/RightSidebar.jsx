@@ -41,12 +41,22 @@ export default function RightSidebar({ tables = [], edges = [], setEdges, onAddT
     setShowAddModal(false);
   };
 
+  const NOTATION_MAP = {
+    'One to One': '1 - 1',
+    'One to Many': '1 - N',
+    'Many to One': 'N - 1',
+    'Many to Many': 'M - N',
+  };
+
   const handleUpdateEdge = (edgeId, data, source, target) => {
     setEdges(eds => eds.map(e => {
       if (e.id === edgeId) {
         const updated = { ...e, data };
         if (source !== undefined) updated.source = source;
         if (target !== undefined) updated.target = target;
+        updated.label = NOTATION_MAP[data.cardinality] || '1 - 1';
+        updated.labelStyle = { fill: '#334155', fontWeight: 600, fontSize: 10, fontFamily: 'sans-serif' };
+        updated.labelBgStyle = { fill: '#ffffff', fillOpacity: 0.9, stroke: '#cbd5e1', strokeWidth: 1, rx: 4, ry: 4 };
         return updated;
       }
       return e;
