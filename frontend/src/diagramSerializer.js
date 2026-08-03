@@ -27,7 +27,8 @@ export function serializeDiagram(tables, edges) {
         notNull: !!col.isNotNull || !!col.isPrimary,
         unique: !!col.isUnique,
         increment: !!col.isAutoIncrement,
-        def: '',
+        def: col.defaultValue || '',
+        checkConstraint: col.checkConstraint || null,
       };
     });
 
@@ -90,6 +91,8 @@ export function deserializeDiagram(diagram) {
         isNotNull: !!f.notNull,
         isUnique: !!f.unique,
         isAutoIncrement: !!f.increment,
+        defaultValue: f.def || '',
+        checkConstraint: f.checkConstraint || null,
       };
     });
     
