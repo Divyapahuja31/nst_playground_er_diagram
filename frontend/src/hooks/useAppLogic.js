@@ -48,6 +48,9 @@ export default function useAppLogic() {
         
       setEdges((eds) => addEdge({
         ...params,
+        label: '1 - 1',
+        labelStyle: { fill: '#334155', fontWeight: 600, fontSize: 10, fontFamily: 'sans-serif' },
+        labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9, stroke: '#cbd5e1', strokeWidth: 1, rx: 4, ry: 4 },
         data: {
           name: edgeName,
           cardinality: 'One to One',
