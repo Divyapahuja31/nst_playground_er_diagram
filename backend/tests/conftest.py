@@ -22,9 +22,9 @@ def client():
 
 
 @pytest.fixture
-def teacher_user(client):
+def teacher_auth(client):
     """
-    Registers and returns auth header for a test Teacher user.
+    Registers and returns auth credentials for a test Teacher user.
     """
     import uuid
     email = f"teacher_{uuid.uuid4().hex[:6]}@nst.edu"
@@ -49,9 +49,9 @@ def teacher_user(client):
 
 
 @pytest.fixture
-def reviewer_teacher(client):
+def reviewer_auth(client):
     """
-    Registers and returns auth header for a Reviewing Teacher user.
+    Registers and returns auth credentials for a Reviewing Teacher user.
     """
     import uuid
     email = f"reviewer_{uuid.uuid4().hex[:6]}@nst.edu"
@@ -76,9 +76,9 @@ def reviewer_teacher(client):
 
 
 @pytest.fixture
-def student_user(client):
+def student_auth(client):
     """
-    Registers and returns auth header for a test Student user.
+    Registers and returns auth credentials for a test Student user.
     """
     import uuid
     email = f"student_{uuid.uuid4().hex[:6]}@nst.edu"
