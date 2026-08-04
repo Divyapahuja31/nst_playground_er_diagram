@@ -28,19 +28,43 @@ class ColorTable:
         """Human-readable form of a color key for mismatch messages."""
         attribute_kind = key[0]
         if attribute_kind == 'FIELD':
-            _, datatype, primary_key, not_null, unique, auto_increment = key
+            _, datatype, primary_key, not_null, unique, auto_increment = key[:6]
+            default_val = key[6] if len(key) > 6 else ''
+            check_sig = key[7] if len(key) > 7 else None
             traits = [t for t, on in (
                 ('PRIMARY KEY', primary_key), ('NOT NULL', not_null), ('UNIQUE', unique), ('AUTO_INCREMENT', auto_increment),
             ) if on]
-            return datatype + (f' [{", ".join(traits)}]' if traits else '')
+            traits_str = ', '.join(traits)
+            desc = datatype + (f' [{traits_str}]' if traits else '')
+            if default_val:
+                desc += f' DEFAULT({default_val})'
+            if check_sig:
+                desc += ' CHECK(...)'
+            return desc
         if attribute_kind in ('FK_SOURCE', 'FK_DESTINATION'):
             return f'{attribute_kind} ({key[1]})'
         return str(key)
 
+def _check_signature(check):
+    """Stable hashable signature of a check constraint for graph coloring."""
+    if not check:
+        return None
+    conditions = check.get('conditions', [])
+    # Normalize: tuple of (left, op, right) for conditions, connectors as strings
+    parts = []
+    for item in conditions:
+        if 'connector' in item:
+            parts.append(item['connector'])
+        else:
+            parts.append((item.get('left', ''), item.get('operator', ''), str(item.get('right', ''))))
+    return tuple(parts) if parts else None
+
 def field_color_key(field):
+    check_sig = _check_signature(field.check_constraint)
+    default_val = field.default.strip() if field.default else ''
     if field.primary_key:
-        return ('FIELD', field.type, True, True, False, field.increment)
-    return ('FIELD', field.type, False, field.not_null, field.unique, field.increment)
+        return ('FIELD', field.type, True, True, False, field.increment, default_val, check_sig)
+    return ('FIELD', field.type, False, field.not_null, field.unique, field.increment, default_val, check_sig)
 
 def build_graph(diagram, color_table):
     graph = ColoredGraph()

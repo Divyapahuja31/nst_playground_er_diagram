@@ -2,6 +2,7 @@
 # by comparing count of tables, relation, fields, etc. So that bliss does not take that much time 
 
 from .graphBuilder import field_color_key, ColorTable
+from .schema import validate_check_constraint
 from collections import Counter
 
 def _mismatch(code, message, solution=None, student=None):
@@ -36,6 +37,52 @@ def _rel_endpoint_key(diagram, relationship):
 def _describe_endpoint(key):
     source, destination, card = key
     return f'{ColorTable.describe(source)} -> {ColorTable.describe(destination)} ({card})'
+
+def _compare_default_values(solution, student):
+    """Check that default values match between matched fields (by type+flag signature)."""
+    mismatches = []
+
+    def field_defaults(diagram):
+        # Group default values by field type signature (ignoring default/check in key)
+        result = Counter()
+        for t in diagram.tables:
+            for f in t.fields:
+                base_key = field_color_key(f)[:6]  # type + flags only
+                val = f.default.strip() if f.default else ''
+                result[(base_key, val)] += 1
+        return result
+
+    sol_defaults = field_defaults(solution)
+    stu_defaults = field_defaults(student)
+
+    for key in sorted(set(sol_defaults) | set(stu_defaults), key=str):
+        sol_count = sol_defaults.get(key, 0)
+        stu_count = stu_defaults.get(key, 0)
+        if sol_count != stu_count:
+            base_key, default_val = key
+            label = ColorTable.describe(('FIELD',) + base_key[1:])
+            default_label = repr(default_val) if default_val else '(none)'
+            mismatches.append(_mismatch(
+                'default_value',
+                f'solution has {sol_count} field(s) of type {label} with default {default_label}; student has {stu_count}',
+                solution=sol_count, student=stu_count,
+            ))
+    return mismatches
+
+def _validate_check_constraints(diagram, who):
+    """Validate check constraint column references within each table."""
+    errors = []
+    for table in diagram.tables:
+        col_names = {f.name for f in table.fields}
+        for f in table.fields:
+            if f.check_constraint:
+                errs = validate_check_constraint(f.check_constraint, f.name, col_names)
+                for err in errs:
+                    errors.append(_mismatch(
+                        'check_constraint_invalid',
+                        f'{who}: {err}',
+                    ))
+    return errors
 
 def compare(solution, student):
     mismatches = []
@@ -79,4 +126,8 @@ def compare(solution, student):
         describe=_describe_endpoint,
     )
 
+    # Validate student check constraints reference valid columns
+    mismatches += _validate_check_constraints(student, 'student')
+
     return mismatches
+
