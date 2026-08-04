@@ -354,8 +354,18 @@ function FieldRow({ col, onUpdate, onDelete, allColumns }) {
   );
 }
 
-export default function TableListItem({ table, onUpdate, onDelete }) {
-  const [expanded, setExpanded] = useState(false);
+export default function TableListItem({ table, expanded: propExpanded, onToggleExpand, onUpdate, onDelete }) {
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const isControlled = propExpanded !== undefined;
+  const expanded = isControlled ? propExpanded : localExpanded;
+
+  const handleToggle = () => {
+    if (isControlled) {
+      onToggleExpand();
+    } else {
+      setLocalExpanded(!localExpanded);
+    }
+  };
 
   const updateColumn = (idx, updatedCol) => {
     const newCols = table.columns.map((col, i) => (i === idx ? updatedCol : col));
@@ -377,7 +387,7 @@ export default function TableListItem({ table, onUpdate, onDelete }) {
       {/* Collapsed header */}
       <div
         className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none hover:bg-neutral-50 transition-colors"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleToggle}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0 text-neutral-400">
           <circle cx="3.5" cy="2.5" r="1.2" fill="currentColor"/>
