@@ -13,7 +13,8 @@ export default function Playground({
   edges,
   onNodesChange,
   onEdgesChange,
-  onConnect
+  onConnect,
+  onNodesDelete
 }) {
   return (
     <div className="canvas-container">
@@ -22,6 +23,7 @@ export default function Playground({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodesDelete={onNodesDelete}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         zoomOnScroll={true}

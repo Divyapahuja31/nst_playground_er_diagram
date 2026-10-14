@@ -40,7 +40,15 @@ export function serializeDiagram(tables, edges) {
 
   for (const edge of edges) {
     const data = edge.data || {};
-    const compositeKeys = data.compositeKeys || [];
+    let compositeKeys = data.compositeKeys || [];
+    
+    // Fallback to handles if user just drew the line and didn't manually configure composite keys
+    if (compositeKeys.length === 0 && edge.sourceHandle && edge.targetHandle) {
+      const sCol = edge.sourceHandle.replace('source-', '').replace('target-', '');
+      const tCol = edge.targetHandle.replace('target-', '').replace('source-', '');
+      compositeKeys = [{ foreign: sCol, primary: tCol }];
+    }
+    
     const cardinality = CARDINALITY_MAP[data.cardinality] || 'many_to_one';
     const sourceTableId = tableIdMap[edge.source];
     const targetTableId = tableIdMap[edge.target];
@@ -132,6 +140,8 @@ export function deserializeDiagram(diagram) {
       id: `edge-${rel.id || idx + 1}`,
       source,
       target,
+      sourceHandle: sourceCol ? `source-${sourceCol}` : undefined,
+      targetHandle: targetCol ? `target-${targetCol}` : undefined,
       label: NOTATION_MAP[cardinality] || '1 - 1',
       labelStyle: { fill: '#334155', fontWeight: 600, fontSize: 10, fontFamily: 'sans-serif' },
       labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9, stroke: '#cbd5e1', strokeWidth: 1, rx: 4, ry: 4 },

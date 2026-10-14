@@ -22,9 +22,7 @@ export default function useAppLogic() {
   });
   const [authError, setAuthError] = useState(null);
 
-  const [questionId, setQuestionId] = useState(() => {
-    return localStorage.getItem('active_question_id') || null;
-  });
+  const [questionId, setQuestionId] = useState(null);
   const [question, setQuestion] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
@@ -59,6 +57,14 @@ export default function useAppLogic() {
       }, eds));
     },
     [setEdges, tables],
+  );
+
+  const onNodesDelete = useCallback(
+    (deleted) => {
+      const deletedIds = new Set(deleted.map((n) => n.id));
+      setTables((prev) => prev.filter((t) => !deletedIds.has(t.id)));
+    },
+    [setTables]
   );
 
   const handleAddTable = (tableName) => {
@@ -108,11 +114,6 @@ export default function useAppLogic() {
 
   const handleQuestionLoaded = async (id) => {
     setQuestionId(id);
-    if (id) {
-      localStorage.setItem('active_question_id', id);
-    } else {
-      localStorage.removeItem('active_question_id');
-    }
     setValidationResult(null);
     setSubmitError(null);
     setSolutionModalOpen(false);
@@ -158,13 +159,6 @@ export default function useAppLogic() {
     }
   };
 
-  useEffect(() => {
-    const savedId = localStorage.getItem('active_question_id');
-    if (savedId) {
-      handleQuestionLoaded(savedId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSave = async () => {
     if (!questionId) return;
@@ -281,7 +275,6 @@ export default function useAppLogic() {
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
-    localStorage.removeItem('active_question_id');
     setToken(null);
     setUser(null);
     setQuestionId(null);
@@ -300,7 +293,7 @@ export default function useAppLogic() {
     submitting, saving, saveSuccess, isPublishing, loadingWorkspace, loadingSolution, submitError, validationResult,
     token, user, authError, questionId, question,
     solutionModalOpen, setSolutionModalOpen, solutionDiagram,
-    onNodesChange, onEdgesChange, onConnect,
+    onNodesChange, onEdgesChange, onConnect, onNodesDelete,
     setEdges, setValidationResult,
     handleAddTable, handleUpdateTable, handleDeleteTable,
     handleQuestionLoaded, handleSave, handlePublishToggle, handleRevealSolution, handleSubmit, handleReset,

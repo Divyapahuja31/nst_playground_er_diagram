@@ -128,6 +128,29 @@ export default function Navbar({
                 )}
               </button>
             )}
+
+            {onRevealSolution && (
+              <button
+                onClick={onRevealSolution}
+                disabled={loadingSolution}
+                className="px-3.5 h-9 rounded-lg font-bold text-[13px] border-none bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                {loadingSolution ? (
+                  <>
+                    <span className="animate-spin mr-1">🌀</span>
+                    Loading…
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    View Solution
+                  </>
+                )}
+              </button>
+            )}
           </>
         )}
 
@@ -159,15 +182,21 @@ export default function Navbar({
               <button
                 onClick={onRevealSolution}
                 disabled={loadingSolution}
-                className="px-3.5 h-9 rounded-lg font-bold text-[13px] border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 h-9 rounded-lg font-bold text-[13px] border-none bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
                 {loadingSolution ? (
                   <>
                     <span className="animate-spin mr-1">🌀</span>
-                    Loading Solution…
+                    Loading…
                   </>
                 ) : (
-                  '👁 Reveal Official Solution'
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    View Solution
+                  </>
                 )}
               </button>
             )}

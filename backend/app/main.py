@@ -111,11 +111,8 @@ def questions_get(question_id: str, include_solution: bool = False, current_user
     return question
 
 def check_question_permission(question: dict, user: User, action: str = "edit"):
-    is_creator = str(user.id) == str(question.get('created_by'))
-    is_owner = str(user.id) == str(question.get('owner_id'))
-    is_admin = user.role == UserRole.ADMIN
-    if not (is_creator or is_owner or is_admin):
-        raise HTTPException(403, f'Only the Creator, Owner, or Admin can {action} this question.')
+    if user.role not in (UserRole.TEACHER, UserRole.ADMIN):
+        raise HTTPException(403, f'Only Teachers or Admins can {action} questions.')
 
 @app.delete('/questions/{question_id}')
 def questions_delete(question_id: str, current_user: User = Depends(require_teacher)):

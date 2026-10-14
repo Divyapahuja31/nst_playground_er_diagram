@@ -7,8 +7,10 @@ from app.db.models import User, Question, Playground, Submission, UserRole, Diff
 from app.validator.core import validate
 
 
+from app.db.db import engine, Base
+
 def init_db():
-    pass
+    Base.metadata.create_all(bind=engine)
 
 
 def list_questions():

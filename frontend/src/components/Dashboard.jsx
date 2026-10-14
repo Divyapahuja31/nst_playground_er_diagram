@@ -15,6 +15,9 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
   const [ownerEmail, setOwnerEmail] = useState('');
   const [error, setError] = useState('');
 
+  // Modal state for Delete confirmation
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
   const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
 
   const loadQuestions = async () => {
@@ -63,26 +66,47 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
     }
   };
 
-  const handleDelete = async (id, e) => {
-    e.stopPropagation(); // Prevent card selection click
-    if (!window.confirm('Are you sure you want to delete this question?')) return;
+  const promptDelete = (id, e) => {
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+  };
+
+  const executeDelete = async (id) => {
+    setDeleteConfirmId(null);
+    // Optimistic UI update
+    setQuestions((prev) => prev.filter((q) => q.id !== id));
+
     try {
       await deleteQuestion(id);
-      loadQuestions();
+      setTimeout(() => loadQuestions(), 500);
     } catch (err) {
       alert(err.message);
+      loadQuestions();
     }
   };
 
   const handleTogglePublish = async (id, currentStatus, e) => {
     e.stopPropagation(); // Prevent card selection click
+    
+    // Optimistically update the UI to prevent jarring flicker
+    setQuestions((prev) => 
+      prev.map((q) => q.id === id ? { ...q, is_published: !currentStatus } : q)
+    );
+    
     try {
       await updateQuestion(id, {
         is_published: !currentStatus
       });
-      loadQuestions();
+      // Silently fetch and sync the latest data in the background
+      fetchQuestions().then(data => {
+        if (data) setQuestions(data);
+      }).catch(console.error);
     } catch (err) {
       alert(err.message);
+      // Revert optimistic update on failure
+      setQuestions((prev) => 
+        prev.map((q) => q.id === id ? { ...q, is_published: currentStatus } : q)
+      );
     }
   };
 
@@ -202,9 +226,7 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
           <div className="flex flex-col gap-3.5 pb-16">
             {filteredQuestions.map((q) => {
               const userIdStr = String(user?.id || '').toLowerCase();
-              const canManage = userIdStr === String(q.created_by || '').toLowerCase() ||
-                                userIdStr === String(q.owner_id || '').toLowerCase() ||
-                                user?.role === 'ADMIN';
+              const canManage = user?.role === 'TEACHER' || user?.role === 'ADMIN';
               const isReviewer = userIdStr === String(q.reviewer_id || '').toLowerCase();
 
               // Difficulty Badge Styles
@@ -262,7 +284,7 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
                           {q.is_published ? 'Unpublish' : 'Publish'}
                         </button>
                         <button
-                          onClick={(e) => handleDelete(q.id, e)}
+                          onClick={(e) => promptDelete(q.id, e)}
                           className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-600 transition-colors border-none bg-transparent cursor-pointer"
                           title="Delete assignment"
                         >
@@ -375,6 +397,31 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
                 )}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4" onClick={() => setDeleteConfirmId(null)}>
+          <div className="bg-white rounded-lg shadow-lg p-5 w-80 max-w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[16px] font-bold text-neutral-900 m-0 mb-2">Confirm Deletion</h3>
+            <p className="text-[13px] text-neutral-600 m-0 mb-5">
+              Are you sure you want to delete this question?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium text-[13px] cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => executeDelete(deleteConfirmId)}
+                className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium text-[13px] cursor-pointer border-none"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

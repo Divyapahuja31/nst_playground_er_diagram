@@ -24,11 +24,16 @@ def validate(expected_solution_doc, student_solution_doc, algorithm=None):
     sg = build_graph(student_solution, colors)
 
     status = {
+        # Real counts (tables and relationships from the diagram)
+        'expected_tables': len(expected_solution.tables),
+        'student_tables': len(student_solution.tables),
+        'expected_relationships': len(expected_solution.relationships),
+        'student_relationships': len(student_solution.relationships),
+        # Graph-level counts (for debugging)
         'expected_nodes': tg.length, 'student_nodes': sg.length,
         'expected_edges': len(tg.edges), 'student_edges': len(sg.edges),
         'engine_ran': False, 'engine_ms': None,
     }
-
     mismatches = compare(expected_solution, student_solution)
     if not mismatches:
         result = engine.are_isomorphic(tg, sg)

@@ -302,7 +302,15 @@ function FieldRow({ col, onUpdate, onDelete, allColumns }) {
             ? 'border-brand-400 bg-brand-50 text-brand-600'
             : 'border-neutral-300 bg-neutral-50 text-neutral-400 hover:border-neutral-400'
         }`}
-        onClick={() => onUpdate({ ...col, isPrimary: !col.isPrimary })}
+        onClick={() => {
+          const newIsPrimary = !col.isPrimary;
+          onUpdate({
+            ...col,
+            isPrimary: newIsPrimary,
+            isNotNull: newIsPrimary ? true : col.isNotNull,
+            isUnique: newIsPrimary ? true : col.isUnique,
+          });
+        }}
       >
         🔑
       </button>
