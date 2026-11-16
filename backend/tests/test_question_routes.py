@@ -41,6 +41,9 @@ def test_student_cannot_view_unpublished_question(client, teacher_auth, student_
     stu_res = client.get(f"/questions/{q_id}", headers=student_auth["headers"])
     assert stu_res.status_code == 403
 
+    # Clean up
+    client.delete(f"/questions/{q_id}", headers=teacher_auth["headers"])
+
 
 def test_student_can_view_published_question_without_solution(client, teacher_auth, student_auth):
     solution = {"tables": [{"id": "t1", "name": "User", "fields": [{"id": "f1", "name": "id", "type": "int"}]}], "relationships": []}
@@ -66,3 +69,61 @@ def test_student_can_view_published_question_without_solution(client, teacher_au
     q_data = stu_res.json()
     assert q_data["title"] == "Published ER Question"
     assert "solution" not in q_data or q_data.get("solution") == {}
+
+    # Clean up
+    client.delete(f"/questions/{q_id}", headers=teacher_auth["headers"])
+
+
+def test_teacher_can_publish_unpublish_and_delete_question(client, teacher_auth):
+    """Teachers can toggle question publish status and delete questions."""
+    solution = {"tables": [{"id": "t1", "name": "Item", "fields": [{"id": "f1", "name": "id", "type": "int"}]}], "relationships": []}
+    # 1. Create question
+    create_res = client.post(
+        "/questions",
+        json={
+            "title": "To Delete Question",
+            "question": "Will be deleted.",
+            "solution": solution,
+        },
+        headers=teacher_auth["headers"],
+    )
+    assert create_res.status_code == 200
+    q_id = create_res.json()["id"]
+
+    # 2. Publish question
+    pub_res = client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
+    assert pub_res.status_code == 200
+    get_pub = client.get(f"/questions/{q_id}", headers=teacher_auth["headers"])
+    assert get_pub.json()["is_published"] is True
+
+    # 3. Unpublish question
+    unpub_res = client.put(f"/questions/{q_id}", json={"is_published": False}, headers=teacher_auth["headers"])
+    assert unpub_res.status_code == 200
+    get_unpub = client.get(f"/questions/{q_id}", headers=teacher_auth["headers"])
+    assert get_unpub.json()["is_published"] is False
+
+    # 4. Delete question
+    del_res = client.delete(f"/questions/{q_id}", headers=teacher_auth["headers"])
+    assert del_res.status_code == 200
+    assert del_res.json() == {"ok": True}
+
+    # 5. Subsequent GET should 404
+    get_del = client.get(f"/questions/{q_id}", headers=teacher_auth["headers"])
+    assert get_del.status_code == 404
+
+
+def test_student_cannot_delete_question(client, teacher_auth, student_auth):
+    """Students are rejected with 403 when attempting to delete questions."""
+    create_res = client.post(
+        "/questions",
+        json={
+            "title": "Protected Question",
+            "question": "Students cannot delete.",
+            "solution": {"tables": [], "relationships": []},
+        },
+        headers=teacher_auth["headers"],
+    )
+    q_id = create_res.json()["id"]
+
+    del_res = client.delete(f"/questions/{q_id}", headers=student_auth["headers"])
+    assert del_res.status_code == 403
