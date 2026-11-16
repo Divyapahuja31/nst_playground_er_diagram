@@ -4,12 +4,15 @@ import RightSidebar from './components/RightSidebar';
 import Playground from './components/Playground';
 import ValidationResult from './components/ValidationResult';
 import RevealSolutionModal from './components/RevealSolutionModal';
+import TeacherSqlSpecModal from './components/TeacherSqlSpecModal';
 import AuthPortal from './components/AuthPortal';
 import Dashboard from './components/Dashboard';
 import useAppLogic from './hooks/useAppLogic';
 import '@xyflow/react/dist/style.css';
+import { useState } from 'react';
 
 export default function App() {
+  const [sqlSpecModalOpen, setSqlSpecModalOpen] = useState(false);
   const {
     nodes, edges, tables,
     submitting, saving, saveSuccess, isPublishing, loadingWorkspace, loadingSolution, submitError, validationResult,
@@ -18,7 +21,7 @@ export default function App() {
     onNodesChange, onEdgesChange, onConnect,
     setEdges, setValidationResult,
     handleAddTable, handleUpdateTable, handleDeleteTable,
-    handleQuestionLoaded, handleSave, handlePublishToggle, handleRevealSolution, handleSubmit, handleReset,
+    handleQuestionLoaded, handleSave, handlePublishToggle, handleDeleteQuestion, handleRevealSolution, handleSubmit, handleReset,
     handleLogin, handleRegister, handleLogout
   } = useAppLogic();
 
@@ -52,6 +55,7 @@ export default function App() {
         saving={saving}
         saveSuccess={saveSuccess}
         onPublishToggle={handlePublishToggle}
+        onDeleteQuestion={handleDeleteQuestion}
         isPublishing={isPublishing}
         onRevealSolution={handleRevealSolution}
         loadingSolution={loadingSolution}
@@ -61,6 +65,7 @@ export default function App() {
         onReset={handleReset}
         onLogout={handleLogout}
         onBack={() => handleQuestionLoaded(null)}
+        onOpenSqlSpec={() => setSqlSpecModalOpen(true)}
       />
 
       <main className="main-workspace relative">
@@ -74,6 +79,7 @@ export default function App() {
         <Sidebar 
           user={user}
           selectedQuestionId={questionId}
+          question={question}
         />
         <Playground
           nodes={nodes}
@@ -102,6 +108,23 @@ export default function App() {
         <RevealSolutionModal
           solutionDiagram={solutionDiagram}
           onClose={() => setSolutionModalOpen(false)}
+        />
+      )}
+
+      {sqlSpecModalOpen && (
+        <TeacherSqlSpecModal
+          isOpen={sqlSpecModalOpen}
+          onClose={() => setSqlSpecModalOpen(false)}
+          questionId={questionId}
+          questionTitle={question?.title}
+          tables={tables}
+          edges={edges}
+          onSpecSaved={(savedSpec) => {
+            // Update local question metadata to indicate spec is active
+            if (question) {
+              question.has_spec = Boolean(savedSpec);
+            }
+          }}
         />
       )}
     </div>
