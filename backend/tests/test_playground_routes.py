@@ -21,15 +21,18 @@ def test_teacher_and_student_playground_isolation(client, teacher_auth, student_
         headers=teacher_auth["headers"],
     ).json()["id"]
 
-    client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
+    try:
+        client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
 
-    # 2. Teacher opens playground -> is_solution MUST be True
-    t_pg = client.get(f"/questions/{q_id}/playground", headers=teacher_auth["headers"]).json()
-    assert t_pg["is_solution"] is True
+        # 2. Teacher opens playground -> is_solution MUST be True
+        t_pg = client.get(f"/questions/{q_id}/playground", headers=teacher_auth["headers"]).json()
+        assert t_pg["is_solution"] is True
 
-    # 3. Student opens playground -> is_solution MUST be False
-    s_pg = client.get(f"/questions/{q_id}/playground", headers=student_auth["headers"]).json()
-    assert s_pg["is_solution"] is False
+        # 3. Student opens playground -> is_solution MUST be False
+        s_pg = client.get(f"/questions/{q_id}/playground", headers=student_auth["headers"]).json()
+        assert s_pg["is_solution"] is False
+    finally:
+        client.delete(f"/questions/{q_id}", headers=teacher_auth["headers"])
 
 
 def test_reviewing_teacher_solution_reveal(client, teacher_auth, reviewer_auth, student_auth):
@@ -48,16 +51,19 @@ def test_reviewing_teacher_solution_reveal(client, teacher_auth, reviewer_auth, 
         headers=teacher_auth["headers"],
     ).json()["id"]
 
-    client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
+    try:
+        client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
 
-    # 2. Reviewing Teacher reveals official reference solution -> Allowed
-    rev_res = client.get(f"/questions/{q_id}/solution", headers=reviewer_auth["headers"])
-    assert rev_res.status_code == 200
-    assert rev_res.json()["solution"] == solution_diagram
+        # 2. Reviewing Teacher reveals official reference solution -> Allowed
+        rev_res = client.get(f"/questions/{q_id}/solution", headers=reviewer_auth["headers"])
+        assert rev_res.status_code == 200
+        assert rev_res.json()["solution"] == solution_diagram
 
-    # 3. Student attempts to reveal official solution -> Forbidden (403)
-    stu_res = client.get(f"/questions/{q_id}/solution", headers=student_auth["headers"])
-    assert stu_res.status_code == 403
+        # 3. Student attempts to reveal official solution -> Forbidden (403)
+        stu_res = client.get(f"/questions/{q_id}/solution", headers=student_auth["headers"])
+        assert stu_res.status_code == 403
+    finally:
+        client.delete(f"/questions/{q_id}", headers=teacher_auth["headers"])
 
 
 def test_student_submit_solution_evaluation(client, teacher_auth, student_auth):
@@ -76,18 +82,21 @@ def test_student_submit_solution_evaluation(client, teacher_auth, student_auth):
         headers=teacher_auth["headers"],
     ).json()["id"]
 
-    client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
+    try:
+        client.put(f"/questions/{q_id}", json={"is_published": True}, headers=teacher_auth["headers"])
 
-    # 2. Student opens and saves diagram to playground
-    client.get(f"/questions/{q_id}/playground", headers=student_auth["headers"])
-    client.put(
-        f"/questions/{q_id}/playground",
-        json={"diagram_json": diagram},
-        headers=student_auth["headers"],
-    )
+        # 2. Student opens and saves diagram to playground
+        client.get(f"/questions/{q_id}/playground", headers=student_auth["headers"])
+        client.put(
+            f"/questions/{q_id}/playground",
+            json={"diagram_json": diagram},
+            headers=student_auth["headers"],
+        )
 
-    # 3. Student submits solution
-    sub_res = client.post(f"/questions/{q_id}/submit", json={}, headers=student_auth["headers"])
-    assert sub_res.status_code == 200
-    data = sub_res.json()
-    assert data["is_valid"] is True
+        # 3. Student submits solution
+        sub_res = client.post(f"/questions/{q_id}/submit", json={}, headers=student_auth["headers"])
+        assert sub_res.status_code == 200
+        data = sub_res.json()
+        assert data["is_valid"] is True
+    finally:
+        client.delete(f"/questions/{q_id}", headers=teacher_auth["headers"])
