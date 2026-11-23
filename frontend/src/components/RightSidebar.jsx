@@ -54,6 +54,11 @@ export default function RightSidebar({ tables = [], edges = [], setEdges, onAddT
         const updated = { ...e, data };
         if (source !== undefined) updated.source = source;
         if (target !== undefined) updated.target = target;
+        if (data.compositeKeys && data.compositeKeys[0]) {
+          const firstKey = data.compositeKeys[0];
+          if (firstKey.foreign) updated.sourceHandle = `source-${firstKey.foreign}`;
+          if (firstKey.primary) updated.targetHandle = `target-${firstKey.primary}`;
+        }
         updated.label = NOTATION_MAP[data.cardinality] || '1 - 1';
         updated.labelStyle = { fill: '#334155', fontWeight: 600, fontSize: 10, fontFamily: 'sans-serif' };
         updated.labelBgStyle = { fill: '#ffffff', fillOpacity: 0.9, stroke: '#cbd5e1', strokeWidth: 1, rx: 4, ry: 4 };
