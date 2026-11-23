@@ -2,6 +2,7 @@ import json
 import time
 import uuid
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from app.db.db import SessionLocal
 from app.db.models import User, Question, Playground, Submission, UserRole, Difficulty
 from app.validator.core import validate
@@ -14,28 +15,50 @@ def init_db():
 def list_questions():
     db = SessionLocal()
     try:
-        rows = db.query(Question).order_by(Question.created_at.desc()).all()
+        rows = (
+            db.query(Question)
+            .options(
+                joinedload(Question.creator),
+                joinedload(Question.reviewer),
+                joinedload(Question.owner),
+            )
+            .order_by(Question.created_at.desc())
+            .all()
+        )
         result = []
         for r in rows:
             created_ts = r.created_at.timestamp() if r.created_at else time.time()
-            reviewer_user = db.query(User).filter(User.id == r.reviewer_id).first() if r.reviewer_id else None
-            owner_user = db.query(User).filter(User.id == r.owner_id).first() if r.owner_id else None
-            creator_user = db.query(User).filter(User.id == r.created_by).first() if r.created_by else None
-
             result.append({
                 "id": str(r.id),
                 "title": r.title,
                 "question": r.description,
+                "difficulty": r.difficulty.value if hasattr(r.difficulty, "value") else str(r.difficulty or "MEDIUM"),
                 "created_at": created_ts,
                 "created_by": str(r.created_by) if r.created_by else None,
-                "creator_email": creator_user.email if creator_user else None,
+                "creator_email": r.creator.email if r.creator else None,
                 "reviewer_id": str(r.reviewer_id) if r.reviewer_id else None,
-                "reviewer_email": reviewer_user.email if reviewer_user else None,
+                "reviewer_email": r.reviewer.email if r.reviewer else None,
                 "owner_id": str(r.owner_id) if r.owner_id else None,
-                "owner_email": owner_user.email if owner_user else None,
+                "owner_email": r.owner.email if r.owner else None,
                 "is_published": bool(r.is_published),
             })
-        return result
+        return result 
+    finally:
+        db.close()
+
+
+def clear_all_questions() -> int:
+    """Removes all questions, playgrounds, and submissions from database."""
+    db = SessionLocal()
+    try:
+        db.query(Submission).delete(synchronize_session=False)
+        db.query(Playground).delete(synchronize_session=False)
+        count = db.query(Question).delete(synchronize_session=False)
+        db.commit()
+        return count
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -45,7 +68,16 @@ def get_question(question_id):
     try:
         try:
             q_uuid = uuid.UUID(str(question_id))
-            q = db.query(Question).filter(Question.id == q_uuid).first()
+            q = (
+                db.query(Question)
+                .options(
+                    joinedload(Question.creator),
+                    joinedload(Question.reviewer),
+                    joinedload(Question.owner),
+                )
+                .filter(Question.id == q_uuid)
+                .first()
+            )
         except ValueError:
             q = None
 
@@ -65,9 +97,6 @@ def get_question(question_id):
             solution = json.loads(solution)
 
         created_ts = q.created_at.timestamp() if q.created_at else time.time()
-        reviewer_user = db.query(User).filter(User.id == q.reviewer_id).first() if q.reviewer_id else None
-        owner_user = db.query(User).filter(User.id == q.owner_id).first() if q.owner_id else None
-        creator_user = db.query(User).filter(User.id == q.created_by).first() if q.created_by else None
 
         return {
             "id": str(q.id),
@@ -76,12 +105,14 @@ def get_question(question_id):
             "solution": solution,
             "created_at": created_ts,
             "created_by": str(q.created_by) if q.created_by else None,
-            "creator_email": creator_user.email if creator_user else None,
+            "creator_email": q.creator.email if q.creator else None,
             "reviewer_id": str(q.reviewer_id) if q.reviewer_id else None,
-            "reviewer_email": reviewer_user.email if reviewer_user else None,
+            "reviewer_email": q.reviewer.email if q.reviewer else None,
             "owner_id": str(q.owner_id) if q.owner_id else None,
-            "owner_email": owner_user.email if owner_user else None,
+            "owner_email": q.owner.email if q.owner else None,
             "is_published": bool(q.is_published),
+            "has_spec": bool(q.spec_json is not None),
+            "spec_json": q.spec_json,
         }
     finally:
         db.close()
@@ -129,15 +160,18 @@ def delete_question(question_id) -> bool:
     try:
         try:
             q_uuid = uuid.UUID(str(question_id))
-            q = db.query(Question).filter(Question.id == q_uuid).first()
         except ValueError:
-            q = None
-
-        if not q:
             return False
-        db.delete(q)
+
+        # Direct database deletes without loading ORM models to avoid remote lazy-load roundtrips
+        db.query(Submission).filter(Submission.question_id == q_uuid).delete(synchronize_session=False)
+        db.query(Playground).filter(Playground.question_id == q_uuid).delete(synchronize_session=False)
+        deleted_count = db.query(Question).filter(Question.id == q_uuid).delete(synchronize_session=False)
         db.commit()
-        return True
+        return deleted_count > 0
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -159,7 +193,7 @@ def update_question(question_id: str, title: str = None, question: str = None, s
         if question is not None:
             q.description = question
         if is_published is not None:
-            q.is_published = is_published
+            q.is_published = bool(is_published)
 
         if reviewer_email is not None:
             if reviewer_email == "":
@@ -203,6 +237,9 @@ def update_question(question_id: str, title: str = None, question: str = None, s
 
         db.commit()
         return True
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -358,6 +395,55 @@ def submit_user_playground(question_id: str, user: User, algorithm: str = None):
         if not q:
             return None, "Question not found"
 
+        # ── Branch A: Query-Based Validation (if question has a spec_json) ──
+        if q.spec_json is not None:
+            # Load student's saved playground
+            stu_pg = (
+                db.query(Playground)
+                .filter(
+                    Playground.question_id == q.id,
+                    Playground.owner_id == user.id,
+                    Playground.is_solution.is_(False),
+                )
+                .first()
+            )
+            if not stu_pg or not stu_pg.diagram_json:
+                return None, "No saved student playground diagram found for this question. Save your diagram before submitting."
+
+            from app.query_validator.spec import spec_from_dict
+            from app.query_validator.scorer import evaluate_submission
+
+            spec = spec_from_dict(str(q.id), q.spec_json)
+            report = evaluate_submission(spec, stu_pg.diagram_json)
+            validation_result = report.to_dict()
+
+            score = float(report.total_marks_earned)
+
+            sub = (
+                db.query(Submission)
+                .filter(Submission.student_id == user.id, Submission.question_id == q.id)
+                .first()
+            )
+            if not sub:
+                sub = Submission(
+                    id=uuid.uuid4(),
+                    student_id=user.id,
+                    question_id=q.id,
+                    playground_id=stu_pg.id,
+                    score=score,
+                    feedback_json=validation_result,
+                )
+                db.add(sub)
+            else:
+                sub.playground_id = stu_pg.id
+                sub.score = score
+                sub.feedback_json = validation_result
+                sub.submitted_at = func.now()
+
+            db.commit()
+            return validation_result, None
+
+        # ── Branch B: Legacy Graph Comparison (Bliss / VF2) ───────────────
         # 1. Load teacher's solution playground
         sol_pg = (
             db.query(Playground)
@@ -382,6 +468,7 @@ def submit_user_playground(question_id: str, user: User, algorithm: str = None):
 
         # 3. Run validation against saved diagrams
         validation_result = validate(sol_pg.diagram_json, stu_pg.diagram_json, algorithm)
+        validation_result["validation_engine"] = "legacy_bliss"
 
         # 4. Upsert single submission record for (student_id, question_id)
         names_score = validation_result.get("names", {}).get("score", 0)

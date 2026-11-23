@@ -128,6 +128,7 @@ class Question(Base):
         nullable=True,
     )
     is_published = Column(Boolean, nullable=False, default=False, server_default="false")
+    spec_json    = Column(JSONB, nullable=True)   # query-validator spec (Phase 1+)
     created_at   = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at   = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
