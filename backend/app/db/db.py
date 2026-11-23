@@ -22,6 +22,25 @@ if DATABASE_URL.startswith("postgresql://"):
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
+else:
+    connect_args["keepalives"] = 1
+    connect_args["keepalives_idle"] = 30
+    connect_args["keepalives_interval"] = 10
+    connect_args["keepalives_count"] = 5
+
+from sqlalchemy.pool import NullPool
+
+engine_kwargs = {
+    "connect_args": connect_args,
+}
+
+if "-pooler" in DATABASE_URL:
+    # Neon PgBouncer pooler operates in transaction mode.
+    # NullPool prevents SQLAlchemy from holding dead client sockets across transactions.
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 300
 
 engine = create_engine(
     DATABASE_URL,
@@ -30,6 +49,7 @@ engine = create_engine(
     pool_recycle=300,
     pool_size=5,
     max_overflow=10,
+    **engine_kwargs,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

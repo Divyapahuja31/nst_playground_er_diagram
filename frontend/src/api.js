@@ -144,3 +144,67 @@ export async function deleteQuestion(id) {
   }
   return res.json();
 }
+
+export async function fetchQuestionSpec(questionId) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/spec`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to fetch spec: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function saveQuestionSpec(questionId, spec) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/spec`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(spec),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const errorMsg = body.errors ? body.errors.join(', ') : body.detail || `Failed to save spec: ${res.status}`;
+    throw new Error(errorMsg);
+  }
+  return res.json();
+}
+
+export async function deleteQuestionSpec(questionId) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/spec`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to remove spec: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function testQuestionSpec(questionId, payload) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/test-spec`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to test spec: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function generateQuestionSpec(questionId, payload = {}) {
+  const res = await fetch(`${API_BASE}/questions/${questionId}/generate-spec`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to generate spec: ${res.status}`);
+  }
+  return res.json();
+}

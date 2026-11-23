@@ -5,12 +5,31 @@ Pytest configuration and global fixtures for backend test suite.
 import sys
 import os
 
+# 1. Force DATABASE_URL to an isolated test SQLite DB before any app code imports it
+TEST_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "test_suite.db"))
+os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH}"
+
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import pytest
 from fastapi.testclient import TestClient
+from app.db.db import engine, Base
+from app.db import models
 from app.main import app
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_isolated_test_database():
+    """Creates schema in isolated test SQLite db for test session and deletes it after."""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+    if os.path.exists(TEST_DB_PATH):
+        try:
+            os.remove(TEST_DB_PATH)
+        except OSError:
+            pass
 
 
 @pytest.fixture

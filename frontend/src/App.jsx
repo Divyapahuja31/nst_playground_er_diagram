@@ -4,6 +4,7 @@ import RightSidebar from './components/RightSidebar';
 import Playground from './components/Playground';
 import ValidationResult from './components/ValidationResult';
 import RevealSolutionModal from './components/RevealSolutionModal';
+import TeacherSqlSpecModal from './components/TeacherSqlSpecModal';
 import AuthPortal from './components/AuthPortal';
 import Dashboard from './components/Dashboard';
 import useAppLogic from './hooks/useAppLogic';
@@ -14,6 +15,21 @@ import { useEffect } from 'react';
 export default function App() {
   const logic = useAppLogic();
   const navigate = useNavigate();
+import { useState } from 'react';
+
+export default function App() {
+  const [sqlSpecModalOpen, setSqlSpecModalOpen] = useState(false);
+  const {
+    nodes, edges, tables,
+    submitting, saving, saveSuccess, isPublishing, loadingWorkspace, loadingSolution, submitError, validationResult,
+    token, user, authError, questionId, question,
+    solutionModalOpen, setSolutionModalOpen, solutionDiagram,
+    onNodesChange, onEdgesChange, onConnect,
+    setEdges, setValidationResult,
+    handleAddTable, handleUpdateTable, handleDeleteTable,
+    handleQuestionLoaded, handleSave, handlePublishToggle, handleDeleteQuestion, handleRevealSolution, handleSubmit, handleReset,
+    handleLogin, handleRegister, handleLogout
+  } = useAppLogic();
 
   if (!logic.token) {
     return (
@@ -72,6 +88,23 @@ function WorkspaceRoute({ logic }) {
         onReset={logic.handleReset}
         onLogout={logic.handleLogout}
         onBack={() => navigate('/')}
+        question={question}
+        user={user}
+        onSave={handleSave}
+        saving={saving}
+        saveSuccess={saveSuccess}
+        onPublishToggle={handlePublishToggle}
+        onDeleteQuestion={handleDeleteQuestion}
+        isPublishing={isPublishing}
+        onRevealSolution={handleRevealSolution}
+        loadingSolution={loadingSolution}
+        onSubmit={handleSubmit}
+        submitting={submitting}
+        submitError={submitError}
+        onReset={handleReset}
+        onLogout={handleLogout}
+        onBack={() => handleQuestionLoaded(null)}
+        onOpenSqlSpec={() => setSqlSpecModalOpen(true)}
       />
 
       <main className="main-workspace relative">
@@ -85,6 +118,9 @@ function WorkspaceRoute({ logic }) {
         <Sidebar 
           user={logic.user}
           question={logic.question}
+          user={user}
+          selectedQuestionId={questionId}
+          question={question}
         />
         <Playground
           nodes={logic.nodes}
@@ -114,6 +150,23 @@ function WorkspaceRoute({ logic }) {
         <RevealSolutionModal
           solutionDiagram={logic.solutionDiagram}
           onClose={() => logic.setSolutionModalOpen(false)}
+        />
+      )}
+
+      {sqlSpecModalOpen && (
+        <TeacherSqlSpecModal
+          isOpen={sqlSpecModalOpen}
+          onClose={() => setSqlSpecModalOpen(false)}
+          questionId={questionId}
+          questionTitle={question?.title}
+          tables={tables}
+          edges={edges}
+          onSpecSaved={(savedSpec) => {
+            // Update local question metadata to indicate spec is active
+            if (question) {
+              question.has_spec = Boolean(savedSpec);
+            }
+          }}
         />
       )}
     </div>

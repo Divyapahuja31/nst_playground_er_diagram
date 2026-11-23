@@ -9,6 +9,39 @@ export default function Sidebar({ user, question }) {
   const loading = !questionData;
 
   const [isResizingActive, setIsResizingActive] = useState(false);
+export default function Sidebar({ user, selectedQuestionId, question = null }) {
+  const [width, setWidth] = useState(420);
+  const isResizing = useRef(false);
+
+  const [questionData, setQuestionData] = useState(question || null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (question) {
+      setQuestionData(question);
+    }
+  }, [question]);
+
+  useEffect(() => {
+    if (!selectedQuestionId) return;
+    // If question data matching this id is already available in memory, avoid flash
+    if (question && String(question.id) === String(selectedQuestionId) && question.question) {
+      setQuestionData(question);
+      return;
+    }
+    async function loadDetail() {
+      setLoading(true);
+      try {
+        const details = await fetchQuestion(selectedQuestionId);
+        setQuestionData(details);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDetail();
+  }, [selectedQuestionId, question]);
 
   const startResizing = () => {
     isResizing.current = true;

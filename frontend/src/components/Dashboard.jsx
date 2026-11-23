@@ -17,23 +17,27 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
 
   // Modal state for Delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  // Delete Confirmation Modal state
+  const [questionToDelete, setQuestionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
 
-  const loadQuestions = async () => {
-    setLoading(true);
+  const loadQuestions = async (showLoadingSpinner = true) => {
+    if (showLoadingSpinner) setLoading(true);
     try {
       const data = await fetchQuestions();
       setQuestions(data || []);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoadingSpinner) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadQuestions();
+    loadQuestions(true);
   }, []);
 
   const [isCreating, setIsCreating] = useState(false);
@@ -58,7 +62,7 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
       });
       setShowCreateModal(false);
       resetForm();
-      loadQuestions();
+      loadQuestions(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -82,6 +86,31 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
     } catch (err) {
       alert(err.message);
       loadQuestions();
+  const requestDelete = (question, e) => {
+    e.stopPropagation(); // Prevent card selection click
+    if (isDeleting) return; // Do not switch while a delete operation is in progress
+    setDeleteError('');
+    setIsDeleting(false);
+    setQuestionToDelete(question);
+  };
+
+  const confirmDelete = async () => {
+    if (!questionToDelete || isDeleting) return;
+    const target = questionToDelete;
+    setIsDeleting(true);
+    setDeleteError('');
+
+    try {
+      await deleteQuestion(target.id);
+      // Remove from list after server confirmation
+      setQuestions((prev) => prev.filter((q) => q.id !== target.id));
+      setQuestionToDelete(null);
+      setIsDeleting(false);
+      loadQuestions(false);
+    } catch (err) {
+      console.error('Failed to delete question:', err);
+      setDeleteError(err.message || 'Could not delete question. Please try again.');
+      setIsDeleting(false);
     }
   };
 
@@ -93,9 +122,14 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
       prev.map((q) => q.id === id ? { ...q, is_published: !currentStatus } : q)
     );
     
+    const nextStatus = !currentStatus;
+    // Optimistically update badge and button immediately
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, is_published: nextStatus } : q))
+    );
     try {
       await updateQuestion(id, {
-        is_published: !currentStatus
+        is_published: nextStatus
       });
       // Silently fetch and sync the latest data in the background
       fetchQuestions().then(data => {
@@ -107,6 +141,14 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
       setQuestions((prev) => 
         prev.map((q) => q.id === id ? { ...q, is_published: currentStatus } : q)
       );
+      loadQuestions(false);
+    } catch (err) {
+      console.error('Failed to toggle publish status:', err);
+      // Revert on error
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === id ? { ...q, is_published: currentStatus } : q))
+      );
+      alert('Failed to update question status: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -225,6 +267,7 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
         ) : (
           <div className="flex flex-col gap-3.5 pb-16">
             {filteredQuestions.map((q) => {
+              const canManage = isTeacher;
               const userIdStr = String(user?.id || '').toLowerCase();
               const canManage = user?.role === 'TEACHER' || user?.role === 'ADMIN';
               const isReviewer = userIdStr === String(q.reviewer_id || '').toLowerCase();
@@ -237,7 +280,7 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
               return (
                 <div
                   key={q.id}
-                  onClick={() => onSelectQuestion(q.id)}
+                  onClick={() => onSelectQuestion(q.id, q)}
                   className="flex items-center justify-between bg-white border border-neutral-200/80 hover:border-brand-500/50 p-5 rounded-2xl shadow-xs hover:shadow-[0_4px_20px_rgba(0,0,0,0.02)] transition-all duration-200 cursor-pointer group"
                 >
                   <div className="flex items-center gap-4 grow">
@@ -255,7 +298,12 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
                         {q.is_published ? (
                           <span className="px-2 py-0.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-[9px] font-bold uppercase tracking-wider">Published</span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-200 text-neutral-600 text-[9px] font-bold uppercase tracking-wider">Draft</span>
+                          <span className="px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-200 text-neutral-600 text-[9px] font-bold uppercase tracking-wider">Draft (Unpublished)</span>
+                        )}
+                        {q.has_spec && (
+                          <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                            <span>⚡</span> SQL Tests Active
+                          </span>
                         )}
                         {isReviewer && (
                           <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-600 text-[9px] font-bold uppercase tracking-wider">Reviewer</span>
@@ -274,24 +322,31 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
                       <div className="flex items-center gap-2 border-r border-neutral-200 pr-3.5 mr-1">
                         <button
                           onClick={(e) => handleTogglePublish(q.id, q.is_published, e)}
-                          className={`px-3 py-1.5 rounded-lg font-bold text-[11px] border-none cursor-pointer transition-colors ${
+                          className={`px-3 py-1.5 rounded-lg font-bold text-[11px] border cursor-pointer transition-all flex items-center gap-1.5 ${
                             q.is_published
-                              ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                              : 'bg-green-50 text-green-700 hover:bg-green-100'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                           }`}
-                          title={q.is_published ? 'Unpublish question' : 'Publish question'}
+                          title={q.is_published ? 'Unpublish question (hide from students)' : 'Publish question (make available to students)'}
                         >
+                          <span className={`w-1.5 h-1.5 rounded-full ${q.is_published ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                           {q.is_published ? 'Unpublish' : 'Publish'}
                         </button>
                         <button
                           onClick={(e) => promptDelete(q.id, e)}
                           className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-600 transition-colors border-none bg-transparent cursor-pointer"
                           title="Delete assignment"
+                          onClick={(e) => requestDelete(q, e)}
+                          className="px-2.5 py-1.5 rounded-lg hover:bg-red-50 text-neutral-500 hover:text-red-600 border border-transparent hover:border-red-200 transition-colors bg-transparent cursor-pointer flex items-center gap-1.5 text-[11px] font-bold"
+                          title="Delete question permanently"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6" />
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
                           </svg>
+                          <span>Delete</span>
                         </button>
                       </div>
                     )}
@@ -412,6 +467,47 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
               <button
                 onClick={() => setDeleteConfirmId(null)}
                 className="px-4 py-2 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium text-[13px] cursor-pointer border-none"
+
+      {/* DELETE CONFIRMATION MODAL (NO BROWSER POPUP) */}
+      {questionToDelete && (
+        <div 
+          className="fixed inset-0 bg-neutral-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => !isDeleting && setQuestionToDelete(null)}
+        >
+          <div 
+            className="bg-white w-full max-w-md rounded-2xl border border-neutral-200/90 shadow-2xl overflow-hidden p-6 flex flex-col gap-4 animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div className="grow">
+                <h3 className="text-[17px] font-extrabold text-neutral-900 m-0">Delete Question</h3>
+                <p className="text-[13px] text-neutral-500 m-0 mt-1.5 leading-relaxed">
+                  Are you sure you want to permanently delete <strong className="text-neutral-800 font-bold">"{questionToDelete.title}"</strong>?
+                </p>
+                {deleteError && (
+                  <div className="mt-2.5 p-2.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[12px] font-medium">
+                    {deleteError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 mt-2 pt-3 border-t border-neutral-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setQuestionToDelete(null)}
+                className={`px-4 py-2 rounded-xl border border-neutral-200 bg-white text-neutral-700 font-bold text-[13px] transition-colors ${
+                  isDeleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-50 cursor-pointer'
+                }`}
               >
                 Cancel
               </button>
@@ -420,6 +516,21 @@ export default function Dashboard({ user, onSelectQuestion, onLogout }) {
                 className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium text-[13px] cursor-pointer border-none"
               >
                 Delete
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className={`px-5 py-2 rounded-xl bg-red-600 text-white font-bold text-[13px] shadow-sm transition-all flex items-center gap-2 border-none ${
+                  isDeleting ? 'opacity-75 cursor-not-allowed' : 'hover:bg-red-700 cursor-pointer'
+                }`}
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="animate-spin inline-block text-white">🌀</span>
+                    Deleting…
+                  </>
+                ) : (
+                  'Yes, Delete Question'
+                )}
               </button>
             </div>
           </div>

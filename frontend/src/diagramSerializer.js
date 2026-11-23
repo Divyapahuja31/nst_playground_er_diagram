@@ -55,9 +55,43 @@ export function serializeDiagram(tables, edges) {
 
     if (!sourceTableId || !targetTableId) continue;
 
-    for (const ck of compositeKeys) {
-      if (!ck.foreign || !ck.primary) continue;
+    const sourceTable = tables.find((t) => t.id === edge.source);
+    const targetTable = tables.find((t) => t.id === edge.target);
+    const sourceCols = sourceTable ? (sourceTable.columns || []) : [];
+    const targetCols = targetTable ? (targetTable.columns || []) : [];
 
+    let keys = (data.compositeKeys || []).filter((ck) => ck && ck.foreign && ck.primary);
+
+    // 1. Fallback: check if handle IDs specify the columns
+    if (keys.length === 0 && (edge.sourceHandle || edge.targetHandle)) {
+      const srcCol = edge.sourceHandle ? edge.sourceHandle.replace(/^(source|target)-/, '') : '';
+      const tgtCol = edge.targetHandle ? edge.targetHandle.replace(/^(source|target)-/, '') : '';
+      if (srcCol && tgtCol && fieldIdMap[`${edge.source}:${srcCol}`] && fieldIdMap[`${edge.target}:${tgtCol}`]) {
+        keys = [{ foreign: srcCol, primary: tgtCol }];
+      }
+    }
+
+    // 2. Fallback: match by common column name (e.g. course_id <-> course_id, student_id <-> student_id)
+    if (keys.length === 0 && sourceCols.length > 0 && targetCols.length > 0) {
+      const matchingCol = sourceCols.find((sc) =>
+        targetCols.some((tc) => tc.name.toLowerCase() === sc.name.toLowerCase())
+      );
+      if (matchingCol) {
+        const targetMatching = targetCols.find(
+          (tc) => tc.name.toLowerCase() === matchingCol.name.toLowerCase()
+        );
+        keys = [{ foreign: matchingCol.name, primary: targetMatching.name }];
+      } else {
+        // Fallback: primary key of target and primary/first column of source
+        const srcCol = sourceCols.find((c) => c.isPrimary) || sourceCols[0];
+        const tgtCol = targetCols.find((c) => c.isPrimary) || targetCols[0];
+        if (srcCol && tgtCol) {
+          keys = [{ foreign: srcCol.name, primary: tgtCol.name }];
+        }
+      }
+    }
+
+    for (const ck of keys) {
       const startFieldId = fieldIdMap[`${edge.source}:${ck.foreign}`];
       const endFieldId = fieldIdMap[`${edge.target}:${ck.primary}`];
 
