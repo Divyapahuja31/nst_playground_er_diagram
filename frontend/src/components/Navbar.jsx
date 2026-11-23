@@ -7,9 +7,11 @@ export default function Navbar({
   saving = false,
   saveSuccess = false,
   onPublishToggle = null,
+  onDeleteQuestion = null,
   isPublishing = false,
   onRevealSolution = null,
   loadingSolution = false,
+  onOpenSqlSpec = null,
   onSubmit,
   submitting = false,
   submitError = null,
@@ -18,6 +20,9 @@ export default function Navbar({
   onBack,
 }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -37,10 +42,26 @@ export default function Navbar({
     return parts[0].substring(0, 2).toUpperCase();
   };
 
+  const handleConfirmDelete = async () => {
+    if (!onDeleteQuestion) return;
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await onDeleteQuestion();
+      setShowDeleteModal(false);
+    } catch (err) {
+      setDeleteError(err.message || 'Failed to delete question');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const isStudent = user?.role === 'STUDENT';
+  const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
   const isOwner =
     question &&
-    (String(user?.id).toLowerCase() === String(question.created_by || '').toLowerCase() ||
+    (isTeacher ||
+      String(user?.id).toLowerCase() === String(question.created_by || '').toLowerCase() ||
       String(user?.id).toLowerCase() === String(question.owner_id || '').toLowerCase() ||
       user?.role === 'ADMIN');
   const isReviewingTeacher = !isStudent && !isOwner;
@@ -63,9 +84,13 @@ export default function Navbar({
             <div className="w-[1px] h-5 bg-neutral-300"></div>
           </>
         )}
-        <span className="font-sans text-[15px] font-bold text-neutral-900 truncate max-w-[280px]">
-          {question?.title || 'ER Diagram Question'}
-        </span>
+        {question?.title ? (
+          <span className="font-sans text-[15px] font-bold text-neutral-900 truncate max-w-[280px]">
+            {question.title}
+          </span>
+        ) : (
+          <div className="h-5 w-36 bg-neutral-200/60 rounded-md animate-pulse my-auto" />
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -105,6 +130,20 @@ export default function Navbar({
                 '💾 Save Solution'
               )}
             </button>
+            
+            {onOpenSqlSpec && (
+              <button
+                type="button"
+                onClick={onOpenSqlSpec}
+                className="px-3.5 h-9 rounded-lg font-bold text-[13px] border border-neutral-300 bg-neutral-0 hover:bg-neutral-100 text-neutral-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                title="Configure and manage SQL test queries for this question"
+              >
+                <span>⚙️ SQL Test Queries</span>
+                {question?.has_spec && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Query validation active" />
+                )}
+              </button>
+            )}
 
             {onPublishToggle && (
               <button
@@ -112,9 +151,10 @@ export default function Navbar({
                 disabled={isPublishing}
                 className={`px-3.5 h-9 rounded-lg font-bold text-[13px] border transition-all cursor-pointer flex items-center gap-1.5 ${
                   question?.is_published
-                    ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
-                    : 'border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-600'
+                    : 'border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-500'
                 }`}
+                title={question?.is_published ? 'Click to unpublish question (hide from students)' : 'Click to publish question (make visible to students)'}
               >
                 {isPublishing ? (
                   <>
@@ -122,10 +162,35 @@ export default function Navbar({
                     Updating…
                   </>
                 ) : question?.is_published ? (
-                  '✓ Published'
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span>Published (Click to Unpublish)</span>
+                  </>
                 ) : (
-                  'Publish Question'
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Publish Question</span>
+                  </>
                 )}
+              </button>
+            )}
+
+            {onDeleteQuestion && (
+              <button
+                onClick={() => {
+                  setDeleteError('');
+                  setShowDeleteModal(true);
+                }}
+                className="px-3 h-9 rounded-lg font-bold text-[13px] border border-red-200 text-red-600 bg-red-50/40 hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer flex items-center gap-1.5"
+                title="Delete this question permanently"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                <span>Delete</span>
               </button>
             )}
           </>
@@ -257,6 +322,67 @@ export default function Navbar({
           )}
         </div>
       </div>
+
+      {/* IN-APP DELETE CONFIRMATION MODAL (NO BROWSER POPUP) */}
+      {showDeleteModal && (
+        <div 
+          className="fixed inset-0 bg-neutral-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => !isDeleting && setShowDeleteModal(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-md rounded-2xl border border-neutral-200/90 shadow-2xl overflow-hidden p-6 flex flex-col gap-4 animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div className="grow">
+                <h3 className="text-[17px] font-extrabold text-neutral-900 m-0">Delete Question</h3>
+                <p className="text-[13px] text-neutral-500 m-0 mt-1.5 leading-relaxed">
+                  Are you sure you want to permanently delete <strong className="text-neutral-800 font-bold">"{question?.title || 'this question'}"</strong>? All student submissions and workspace diagrams will also be removed.
+                </p>
+                {deleteError && (
+                  <div className="mt-2.5 p-2.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[12px] font-medium">
+                    {deleteError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 mt-2 pt-3 border-t border-neutral-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-bold text-[13px] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[13px] shadow-sm transition-all cursor-pointer flex items-center gap-2 border-none"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="animate-spin text-white">🌀</span>
+                    Deleting…
+                  </>
+                ) : (
+                  'Yes, Delete Question'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

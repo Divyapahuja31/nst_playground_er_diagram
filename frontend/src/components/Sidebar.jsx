@@ -2,15 +2,26 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchQuestion } from '../api';
 
-export default function Sidebar({ user, selectedQuestionId }) {
+export default function Sidebar({ user, selectedQuestionId, question = null }) {
   const [width, setWidth] = useState(420);
   const isResizing = useRef(false);
 
-  const [questionData, setQuestionData] = useState(null);
+  const [questionData, setQuestionData] = useState(question || null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (question) {
+      setQuestionData(question);
+    }
+  }, [question]);
+
+  useEffect(() => {
     if (!selectedQuestionId) return;
+    // If question data matching this id is already available in memory, avoid flash
+    if (question && String(question.id) === String(selectedQuestionId) && question.question) {
+      setQuestionData(question);
+      return;
+    }
     async function loadDetail() {
       setLoading(true);
       try {
@@ -23,7 +34,7 @@ export default function Sidebar({ user, selectedQuestionId }) {
       }
     }
     loadDetail();
-  }, [selectedQuestionId]);
+  }, [selectedQuestionId, question]);
 
   const startResizing = (e) => {
     isResizing.current = true;
